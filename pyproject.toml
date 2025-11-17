@@ -1,0 +1,9 @@
+[project]
+name = "glaive"
+version = "0.1.0"
+description = "A traditional Roguelike. Get in, kill everything in your way, grab treasure, get out alive. "
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "bearlibterminal>=0.15.8",
+]
