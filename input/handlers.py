@@ -1,12 +1,14 @@
 from bearlibterminal import terminal
 
+from ecs.components import IsPlayer, MoveIntent
+from ecs.world import World
 from input.input import ActionResult, InputHandler
 
 
 class MainGameHandler(InputHandler):
-    def __init__(self, player):
+    def __init__(self, world: World):
         super().__init__()
-        self.player = player
+        self.world: World = world
 
     def load_keybinds(self):
         self.keybinds = {
@@ -60,8 +62,8 @@ class MainGameHandler(InputHandler):
         return self._move(1, 1)
 
     def _move(self, dx: int, dy: int) -> ActionResult:
-        success: bool = self.player.try_move(dx, dy)
-        if success:
-            return ActionResult.turn_passed()
+        players = self.world.get_entities_with(IsPlayer)
+        player: int = next(iter(players))
+        self.world.add_component(player, MoveIntent(dx, dy, True))
 
         return ActionResult.no_op()
