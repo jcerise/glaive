@@ -10,3 +10,8 @@ class Resource:
 @dataclass
 class TerminalResource(Resource):
     pass
+
+
+@dataclass
+class MapResource(Resource):
+    pass

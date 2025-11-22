@@ -1,5 +1,5 @@
 from ecs.components import Drawable, IsPlayer, Position, TurnConsumed
-from ecs.resources import TerminalResource
+from ecs.resources import MapResource, TerminalResource
 from ecs.systems import MovementSystem, RenderSystem, SystemScheduler
 from ecs.world import World
 from input.handlers import MainGameHandler
@@ -31,6 +31,7 @@ system_scheduler.add_system(MovementSystem(), "action")
 # Create a basic Arena map, that takes up the terminal (no camera yet)
 arena_generator: ArenaGenerator = ArenaGenerator(80, 25)
 game_map: GameMap = arena_generator.generate()
+world.add_resource(MapResource(game_map))
 
 # Initial render
 g_term.clear()
