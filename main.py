@@ -1,54 +1,38 @@
-from bearlibterminal import terminal
-
+from ecs.components import Drawable, IsPlayer, Position, TurnConsumed
+from ecs.resources import TerminalResource
+from ecs.systems import MovementSystem, RenderSystem, SystemScheduler
+from ecs.world import World
 from input.handlers import MainGameHandler
 from input.input import InputHandler, InputManager
 from terminal.terminal import GlaiveTerminal
 
-
-class Player:
-    def __init__(self, x: int, y: int):
-        self.x = x
-        self.y = y
-
-    def draw(self, terminal: GlaiveTerminal):
-        terminal.draw(self.x, self.y, "@", "dark red")
-
-    def try_move(self, dx: int, dy: int) -> bool:
-        # For now, just check if the player is attempting to move outside the bounds of the terminal
-        new_x: int = self.x + dx
-        new_y: int = self.y + dy
-
-        width: int = terminal.state(terminal.TK_WIDTH)
-        height: int = terminal.state(terminal.TK_HEIGHT)
-
-        if 0 <= new_x < width and 0 <= new_y < height:
-            self.x = new_x
-            self.y = new_y
-            return True
-
-        return False
-
-
 g_term: GlaiveTerminal = GlaiveTerminal("Glaive", 80, 25)
 g_term.init_window()
 
-player: Player = Player(1, 1)
-player.draw(g_term)
+world: World = World()
+world.add_resource(TerminalResource(g_term))
 
-initial_handler: InputHandler = MainGameHandler(player)
+initial_handler: InputHandler = MainGameHandler(world)
 input_manager: InputManager = InputManager(initial_handler)
 
+player: int = world.create_entity()
+world.add_component(player, IsPlayer())
+world.add_component(player, Position(1, 1))
+world.add_component(player, Drawable("@", "white", "Player"))
+
+system_scheduler: SystemScheduler = SystemScheduler()
+system_scheduler.add_system(RenderSystem(), "render")
+system_scheduler.add_system(MovementSystem(), "action")
+
 while True:
-    g_term.clear()
-
-    player.draw(g_term)
-
     event = g_term.handle_event()
 
     # If a turn is consumed, the game world will update (enemies move, things happen, etc)
     # If a turn is not consumed, the game world is not updated
-    turn_consumed: bool = input_manager.process_key(event)
+    input_manager.process_key(event)
+    system_scheduler.update(world)
+
+    turn_consumed: bool = world.get_component(player, TurnConsumed) is not None
 
     if turn_consumed:
-        # Update the game world, but for now pass
-        pass
+        world.remove_component(player, TurnConsumed)
