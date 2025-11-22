@@ -8,4 +8,5 @@ class Resource:
 
 
 @dataclass
-class TerminalResource(Resource)
+class TerminalResource(Resource):
+    pass

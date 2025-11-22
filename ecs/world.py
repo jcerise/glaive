@@ -10,9 +10,9 @@ R = TypeVar("R", bound=Resource)
 class World:
     def __init__(self):
         self._next_entity_id: int = 0
-        self._entities: set[int] = {}
-        self._components: dict[type[Component], dict[int, Component]]
-        self._resources: dict[type[Resource], Resource]
+        self._entities: set[int] = set()
+        self._components: dict[type[Component], dict[int, Component]] = {}
+        self._resources: dict[type[Resource], Resource] = {}
 
     def create_entity(self) -> int:
         entity_id: int = self._next_entity_id
@@ -26,6 +26,10 @@ class World:
             self._components[component_type] = {}
 
         self._components[component_type][entity] = component
+
+    def remove_component(self, entity: int, component_type: type[Component]) -> None:
+        if component_type in self._components:
+            self._components[component_type].pop(entity, None)
 
     def get_component(self, entity: int, component_type: type[T]) -> T | None:
         component = self._components.get(component_type, {}).get(entity)
