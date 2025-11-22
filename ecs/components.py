@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from terminal.glyph import Glyph
+
 
 class Component:
     pass
@@ -23,8 +25,7 @@ class Position(Component):
 
 @dataclass
 class Drawable(Component):
-    char: str
-    color: str
+    glyph: Glyph
     name: str
 
 
