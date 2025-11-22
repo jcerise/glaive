@@ -1,5 +1,7 @@
 from bearlibterminal import terminal as blt
 
+from terminal.glyph import Glyph
+
 
 class GlaiveTerminal:
     """
@@ -41,8 +43,15 @@ class GlaiveTerminal:
         blt.color(blt.color_from_name(color))
         blt.bkcolor(blt.color_from_name(bk_color))
         blt.put(x, y, char)
-        blt.refresh()
         blt.bkcolor(blt.color_from_name("black"))
+
+    def draw_glyph(self, x: int, y: int, glyph: Glyph, layer: int = 0):
+        blt.layer(layer)
+        blt.color(blt.color_from_name(glyph.fg_color))
+        blt.bkcolor(blt.color_from_name(glyph.bg_color))
+        blt.put(x, y, glyph.char)
+        blt.bkcolor(blt.color_from_name("black"))
+        blt.layer(0)
 
     def draw_string(self, x: int, y: int, string: str, color: str):
         blt.color(blt.color_from_name(color))
@@ -51,4 +60,6 @@ class GlaiveTerminal:
 
     def clear(self):
         blt.clear()
+
+    def refresh(self):
         blt.refresh()

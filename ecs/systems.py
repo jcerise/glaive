@@ -32,16 +32,13 @@ class SystemScheduler:
 class RenderSystem(System):
     def update(self, world: World) -> None:
         terminal: GlaiveTerminal = world.resource_for(TerminalResource)
-        terminal.clear()
         for entity in world.get_entities_with(Position, Drawable):
             pos_component: Position = world.component_for(entity, Position)
             drawable_component: Drawable = world.component_for(entity, Drawable)
 
-            terminal.draw(
-                pos_component.x,
-                pos_component.y,
-                drawable_component.char,
-                drawable_component.color,
+            # Draw entities on layer 1 of the terminal (above map tiles on layer 0)
+            terminal.draw_glyph(
+                pos_component.x, pos_component.y, drawable_component.glyph, 1
             )
 
 
