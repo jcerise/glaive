@@ -11,9 +11,9 @@ Currently implemented features:
 - Lightweight ECS with system scheduling and resource insertion
 - Mapping capabilities
 - Camera
+- FOV
 
 Upcoming features:
-- FOV
 - User Interface
 - Actual gameplay (proper map generation, enemies, combat, enemy pathfinding)
 - Items, inventory
