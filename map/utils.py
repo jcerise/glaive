@@ -18,8 +18,17 @@ def render_map(
             tile_type: TileType = game_map.get_tile(world_x, world_y)
             glyph: Glyph = TILE_PROPERTIES[tile_type].glyph
 
-            # Convert world coordinates to screen coordinates prior to drawing
-            screen_x, screen_y = camera.world_to_screen(world_x, world_y)
+            # Check the FOV map, and don't render tiles if they are not currently visible
+            if game_map.is_visible(world_x, world_y):
+                # Convert world coordinates to screen coordinates prior to drawing
+                screen_x, screen_y = camera.world_to_screen(world_x, world_y)
 
-            # Draw map tiles on the lowest level of the terminal, at screen position
-            terminal.draw_glyph(screen_x, screen_y, glyph, 0)
+                # Draw map tiles on the lowest level of the terminal, at screen position
+                terminal.draw_glyph(screen_x, screen_y, glyph, 0)
+            elif game_map.is_explored(world_x, world_y):
+                glyph = glyph.dim()
+                # Convert world coordinates to screen coordinates prior to drawing
+                screen_x, screen_y = camera.world_to_screen(world_x, world_y)
+
+                # Draw map tiles on the lowest level of the terminal, at screen position
+                terminal.draw_glyph(screen_x, screen_y, glyph, 0)
