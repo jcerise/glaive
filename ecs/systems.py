@@ -1,5 +1,6 @@
+from camera.camera import Camera
 from ecs.components import Drawable, MoveIntent, Position, TurnConsumed
-from ecs.resources import MapResource, TerminalResource
+from ecs.resources import CameraResource, MapResource, TerminalResource
 from ecs.world import World
 from map.map import GameMap
 from terminal.terminal import GlaiveTerminal
@@ -33,14 +34,19 @@ class SystemScheduler:
 class RenderSystem(System):
     def update(self, world: World) -> None:
         terminal: GlaiveTerminal = world.resource_for(TerminalResource)
+        camera: Camera = world.resource_for(CameraResource)
         for entity in world.get_entities_with(Position, Drawable):
             pos_component: Position = world.component_for(entity, Position)
             drawable_component: Drawable = world.component_for(entity, Drawable)
 
-            # Draw entities on layer 1 of the terminal (above map tiles on layer 0)
-            terminal.draw_glyph(
-                pos_component.x, pos_component.y, drawable_component.glyph, 1
-            )
+            # Only draw entities that are visible to the camera
+            if camera.is_visible(pos_component.x, pos_component.y):
+                # Convert entity world coordinates to screen coordinates, so they properly draw in the camera
+                screen_x, screen_y = camera.world_to_screen(
+                    pos_component.x, pos_component.y
+                )
+                # Draw entities on layer 1 of the terminal (above map tiles on layer 0)
+                terminal.draw_glyph(screen_x, screen_y, drawable_component.glyph, 1)
 
 
 class MovementSystem(System):
