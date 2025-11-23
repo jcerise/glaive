@@ -1,4 +1,5 @@
 from camera.camera import Camera
+from camera.utils import compute_fov
 from ecs.components import Drawable, IsPlayer, Position, TurnConsumed
 from ecs.resources import CameraResource, MapResource, TerminalResource
 from ecs.systems import MovementSystem, RenderSystem, SystemScheduler
@@ -63,6 +64,7 @@ while True:
     # Finally, update the camera and render the map
     player_pos: Position = world.component_for(player, Position)
     camera.update(player_pos.x, player_pos.y)
+    compute_fov(game_map, player_pos.x, player_pos.y)
     render_map(game_map, g_term, world, camera)
 
     g_term.refresh()
