@@ -15,3 +15,8 @@ class TerminalResource(Resource):
 @dataclass
 class MapResource(Resource):
     pass
+
+
+@dataclass
+class CameraResource(Resource):
+    pass
