@@ -1,5 +1,7 @@
+from typing import Optional
+
 from camera.camera import Camera
-from ecs.components import Drawable, MoveIntent, Position, TurnConsumed
+from ecs.components import Drawable, IsPlayer, MoveIntent, Position, TurnConsumed
 from ecs.resources import CameraResource, MapResource, TerminalResource
 from ecs.world import World
 from map.map import GameMap
@@ -35,12 +37,17 @@ class RenderSystem(System):
     def update(self, world: World) -> None:
         terminal: GlaiveTerminal = world.resource_for(TerminalResource)
         camera: Camera = world.resource_for(CameraResource)
+        game_map: GameMap = world.resource_for(MapResource)
         for entity in world.get_entities_with(Position, Drawable):
             pos_component: Position = world.component_for(entity, Position)
             drawable_component: Drawable = world.component_for(entity, Drawable)
+            player_component: Optional[IsPlayer] = world.get_component(entity, IsPlayer)
 
             # Only draw entities that are visible to the camera
-            if camera.is_visible(pos_component.x, pos_component.y):
+            if (
+                camera.is_visible(pos_component.x, pos_component.y)
+                and game_map.is_visible(pos_component.x, pos_component.y)
+            ) or player_component:
                 # Convert entity world coordinates to screen coordinates, so they properly draw in the camera
                 screen_x, screen_y = camera.world_to_screen(
                     pos_component.x, pos_component.y
