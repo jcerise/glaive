@@ -45,13 +45,11 @@ class GlaiveTerminal:
         blt.put(x, y, char)
         blt.bkcolor(blt.color_from_name("black"))
 
-    def draw_glyph(self, x: int, y: int, glyph: Glyph, layer: int = 0):
-        blt.layer(layer)
+    def draw_glyph(self, x: int, y: int, glyph: Glyph):
         blt.color(blt.color_from_name(glyph.fg_color))
         blt.bkcolor(blt.color_from_name(glyph.bg_color))
         blt.put(x, y, glyph.char)
         blt.bkcolor(blt.color_from_name("black"))
-        blt.layer(0)
 
     def draw_string(self, x: int, y: int, string: str, color: str):
         blt.color(blt.color_from_name(color))
@@ -63,3 +61,21 @@ class GlaiveTerminal:
 
     def refresh(self):
         blt.refresh()
+
+    def set_layer(self, layer: int):
+        blt.layer(layer)
+
+    def draw_at_layer(self, x: int, y: int, glyph: Glyph, layer: int):
+        blt.layer(layer)
+        self.draw_glyph(x, y, glyph)
+        blt.layer(0)
+
+    def draw_string_at_layer(self, x: int, y: int, string: str, color: str, layer: int):
+        blt.layer(layer)
+        self.draw_string(x, y, string, color)
+        blt.layer(0)
+
+    def clear_layer(self, layer: int):
+        blt.layer(layer)
+        blt.clear_area(0, 0, self.window_width, self.window_height)
+        blt.layer(0)
