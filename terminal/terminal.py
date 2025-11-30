@@ -54,7 +54,6 @@ class GlaiveTerminal:
     def draw_string(self, x: int, y: int, string: str, color: str):
         blt.color(blt.color_from_name(color))
         blt.printf(x, y, string)
-        blt.refresh()
 
     def clear(self):
         blt.clear()

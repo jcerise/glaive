@@ -1,13 +1,14 @@
-from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
 from terminal.glyph import Glyph
-from terminal.terminal import GlaiveTerminal
 from ui.rect import Rect
 
+if TYPE_CHECKING:
+    from terminal.terminal import GlaiveTerminal
 
-@dataclass
+
 class BorderStyle(BaseModel):
     """
     Defines characters for border drawing
@@ -22,28 +23,28 @@ class BorderStyle(BaseModel):
 
 
 DOUBLE_BORDER: BorderStyle = BorderStyle(
-    Glyph("═", "white"),
-    Glyph("║", "white"),
-    Glyph("╔", "white"),
-    Glyph("╗", "white"),
-    Glyph("╚", "white"),
-    Glyph("╝", "white"),
+    horizontal=Glyph("═", "white"),
+    vertical=Glyph("║", "white"),
+    top_left=Glyph("╔", "white"),
+    top_right=Glyph("╗", "white"),
+    bottom_left=Glyph("╚", "white"),
+    bottom_right=Glyph("╝", "white"),
 )
 SINGLE_BORDER: BorderStyle = BorderStyle(
-    Glyph("─", "white"),
-    Glyph("│", "white"),
-    Glyph("┌", "white"),
-    Glyph("┐", "white"),
-    Glyph("└", "white"),
-    Glyph("┘", "white"),
+    horizontal=Glyph("─", "white"),
+    vertical=Glyph("│", "white"),
+    top_left=Glyph("┌", "white"),
+    top_right=Glyph("┐", "white"),
+    bottom_left=Glyph("└", "white"),
+    bottom_right=Glyph("┘", "white"),
 )
 ASCII_BORDER: BorderStyle = BorderStyle(
-    Glyph("-", "white"),
-    Glyph("|", "white"),
-    Glyph("+", "white"),
-    Glyph("+", "white"),
-    Glyph("+", "white"),
-    Glyph("+", "white"),
+    horizontal=Glyph("-", "white"),
+    vertical=Glyph("|", "white"),
+    top_left=Glyph("+", "white"),
+    top_right=Glyph("+", "white"),
+    bottom_left=Glyph("+", "white"),
+    bottom_right=Glyph("+", "white"),
 )
 
 DEFAULT_BORDER = DOUBLE_BORDER

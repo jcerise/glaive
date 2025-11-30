@@ -45,7 +45,7 @@ class Rect(BaseModel):
 
     @staticmethod
     def centered(
-        self, screen_width: int, screen_height: int, popup_width: int, popup_height: int
+        screen_width: int, screen_height: int, popup_width: int, popup_height: int
     ) -> "Rect":
         """
         Create a new rectangle centered on the screen
