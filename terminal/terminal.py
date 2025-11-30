@@ -33,9 +33,9 @@ class GlaiveTerminal:
     def handle_event(self) -> int:
         # Handle user input events
         event = blt.read()
-        if event == blt.TK_CLOSE or event == blt.TK_ESCAPE:
+        if event == blt.TK_CLOSE:
             blt.close()
-            return event
+            exit()
         else:
             return event
 

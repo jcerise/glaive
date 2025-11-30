@@ -1,12 +1,9 @@
-# ui/menu.py
-
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Callable, Optional, Set
 
 from bearlibterminal import terminal as blt
 
 from input.input import ActionResult, InputHandler
-from ui.borders import DEFAULT_BORDER
 from ui.popup import Popup, PopupStack
 from ui.rect import Rect
 
@@ -212,6 +209,7 @@ class MenuHandler(InputHandler):
         self.popup_stack = popup_stack
         self.world = world
         self.popup = popup
+        self._popup_pushed = False
 
         # Get reserved keys from parent handler
         if parent_handler and hasattr(parent_handler, "keybinds"):
@@ -230,6 +228,10 @@ class MenuHandler(InputHandler):
         # First, check if it's a menu item key
         result = self.menu.handle_key(key)
         if result is not None:
+            # If the action wants to close the menu, ensure popup is removed
+            if result.pop:
+                if self.popup and self.popup in self.popup_stack._stack:
+                    self.popup_stack._stack.remove(self.popup)
             return result
 
         # Then check our own keybinds (escape, etc.)
@@ -242,9 +244,9 @@ class MenuHandler(InputHandler):
         return ActionResult.pop_handler()
 
     def on_enter(self):
-        """Called when this handler becomes active"""
-        if self.popup:
+        if self.popup and not self._popup_pushed:
             self.popup_stack.push(self.popup)
+            self._popup_pushed = True
 
     def on_exit(self):
         """Called when this handler is deactivated"""

@@ -97,6 +97,6 @@ def fill_rect(
     Fill a rectangle with a given character. Useful for clearinga rectangle
     """
     for y in range(rect.y, rect.y2):
-        glyph: Glyph = Glyph(" ", fg_color, bg_color)
+        glyph: Glyph = Glyph("█", fg_color, bg_color)
         for x in range(rect.x, rect.x2):
             terminal.draw_at_layer(x, y, glyph, layer)

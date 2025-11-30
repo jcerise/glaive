@@ -121,3 +121,9 @@ class PopupStack:
         for i, popup in enumerate(self._stack):
             layer = self.BASE_LAYER + i
             popup.render(terminal, world, self.screen_width, self.screen_height, layer)
+
+
+from ecs.world import World
+from terminal.terminal import GlaiveTerminal
+
+Popup.model_rebuild()
