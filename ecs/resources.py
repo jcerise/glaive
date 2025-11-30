@@ -1,22 +1,35 @@
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Generic, TypeVar
+
+if TYPE_CHECKING:
+    from camera.camera import Camera
+    from map.map import GameMap
+    from terminal.terminal import GlaiveTerminal
+    from ui.state import UIState
+
+T = TypeVar("T")
 
 
 @dataclass
-class Resource:
-    instance: Any
+class Resource(Generic[T]):
+    instance: T
 
 
 @dataclass
-class TerminalResource(Resource):
+class TerminalResource(Resource["GlaiveTerminal"]):
     pass
 
 
 @dataclass
-class MapResource(Resource):
+class MapResource(Resource["GameMap"]):
     pass
 
 
 @dataclass
-class CameraResource(Resource):
+class CameraResource(Resource["Camera"]):
+    pass
+
+
+@dataclass
+class UIResource(Resource["UIState"]):
     pass

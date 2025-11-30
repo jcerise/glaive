@@ -1,11 +1,14 @@
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
-from camera.camera import Camera
 from ecs.components import Drawable, IsPlayer, MoveIntent, Position, TurnConsumed
-from ecs.resources import CameraResource, MapResource, TerminalResource
+from ecs.resources import CameraResource, MapResource, TerminalResource, UIResource
 from ecs.world import World
-from map.map import GameMap
-from terminal.terminal import GlaiveTerminal
+
+if TYPE_CHECKING:
+    from camera.camera import Camera
+    from map.map import GameMap
+    from terminal.terminal import GlaiveTerminal
+    from ui.state import UIState
 
 
 class System:
@@ -35,9 +38,9 @@ class SystemScheduler:
 
 class RenderSystem(System):
     def update(self, world: World) -> None:
-        terminal: GlaiveTerminal = world.resource_for(TerminalResource)
-        camera: Camera = world.resource_for(CameraResource)
-        game_map: GameMap = world.resource_for(MapResource)
+        terminal: "GlaiveTerminal" = world.resource_for(TerminalResource)
+        camera: "Camera" = world.resource_for(CameraResource)
+        game_map: "GameMap" = world.resource_for(MapResource)
         for entity in world.get_entities_with(Position, Drawable):
             pos_component: Position = world.component_for(entity, Position)
             drawable_component: Drawable = world.component_for(entity, Drawable)
@@ -53,12 +56,29 @@ class RenderSystem(System):
                     pos_component.x, pos_component.y
                 )
                 # Draw entities on layer 1 of the terminal (above map tiles on layer 0)
-                terminal.draw_glyph(screen_x, screen_y, drawable_component.glyph, 1)
+                terminal.draw_at_layer(screen_x, screen_y, drawable_component.glyph, 1)
+
+
+class UIRenderSystem(System):
+    """
+    Renders the UI layer: panels and popups.
+    Should run AFTER the game's RenderSystem.
+    """
+
+    def update(self, world: World) -> None:
+        terminal: "GlaiveTerminal" = world.resource_for(TerminalResource)
+        ui_state: "UIState" = world.resource_for(UIResource)
+
+        # 1. Render panel borders and content (stats, log)
+        ui_state.layout_manager.render_panels(terminal, world)
+
+        # 2. Render popup stack (if any popups are open)
+        ui_state.popup_stack.render(terminal, world)
 
 
 class MovementSystem(System):
     def update(self, world: World) -> None:
-        game_map: GameMap = world.resource_for(MapResource)
+        game_map: "GameMap" = world.resource_for(MapResource)
         for entity in world.get_entities_with(MoveIntent, Position):
             intent: MoveIntent = world.component_for(entity, MoveIntent)
             pos: Position = world.component_for(entity, Position)
@@ -75,7 +95,7 @@ class MovementSystem(System):
 
             world.remove_component(entity, MoveIntent)
 
-    def try_move(self, new_x: int, new_y: int, game_map: GameMap) -> bool:
+    def try_move(self, new_x: int, new_y: int, game_map: "GameMap") -> bool:
         # Check the game map, and ensure the tile the user wants to move to does not block movement
         if not game_map.blocks_movement(new_x, new_y):
             self.x = new_x

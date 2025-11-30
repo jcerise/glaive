@@ -1,8 +1,8 @@
 from camera.camera import Camera
 from camera.utils import compute_fov
 from ecs.components import Drawable, IsPlayer, Position, TurnConsumed
-from ecs.resources import CameraResource, MapResource, TerminalResource
-from ecs.systems import MovementSystem, RenderSystem, SystemScheduler
+from ecs.resources import CameraResource, MapResource, TerminalResource, UIResource
+from ecs.systems import MovementSystem, RenderSystem, SystemScheduler, UIRenderSystem
 from ecs.world import World
 from input.handlers import MainGameHandler
 from input.input import InputHandler, InputManager
@@ -11,15 +11,29 @@ from map.map import GameMap
 from map.utils import render_map
 from terminal.glyph import Glyph
 from terminal.terminal import GlaiveTerminal
+from ui.layout import LayoutManager
+from ui.log import MessageLog
+from ui.popup import PopupStack
+from ui.state import UIState
 
 g_term: GlaiveTerminal = GlaiveTerminal("Glaive", 80, 25)
 g_term.init_window()
 
-camera: Camera = Camera(80, 25, 160, 50)
+# Create our UI components
+message_log: MessageLog = MessageLog()
+layout: LayoutManager = LayoutManager(80, 25, message_log)
+popup_stack: PopupStack = PopupStack(80, 25)
+
+ui_state: UIState = UIState(layout, popup_stack, message_log)
+
+play_area = layout.get_play_area_inner()
+camera: Camera = Camera(play_area.width, play_area.height, 160, 50)
+camera.set_screen_offset(play_area.x, play_area.y)
 
 world: World = World()
 world.add_resource(TerminalResource(g_term))
 world.add_resource(CameraResource(camera))
+world.add_resource(UIResource(ui_state))
 
 initial_handler: InputHandler = MainGameHandler(world)
 input_manager: InputManager = InputManager(initial_handler)
@@ -34,12 +48,17 @@ camera.update(1, 1)
 
 system_scheduler: SystemScheduler = SystemScheduler()
 system_scheduler.add_system(RenderSystem(), "render")
+system_scheduler.add_system(UIRenderSystem(), "render")
 system_scheduler.add_system(MovementSystem(), "action")
 
 # Create a basic Arena map, that takes up the terminal (no camera yet)
 arena_generator: ArenaGenerator = ArenaGenerator(160, 50)
 game_map: GameMap = arena_generator.generate()
 world.add_resource(MapResource(game_map))
+
+# Add a few initial system messages
+message_log.add("Welcome to Glaive!", "yellow")
+message_log.add("Use arrow keys or hjklyubn to move.", "gray")
 
 # Initial render
 g_term.clear()

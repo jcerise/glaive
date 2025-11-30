@@ -5,6 +5,7 @@ from ecs.resources import Resource
 
 T = TypeVar("T", bound=Component)
 R = TypeVar("R", bound=Resource)
+T_Instance = TypeVar("T_Instance")
 
 
 class World:
@@ -57,13 +58,13 @@ class World:
         self._resources[type(resource)] = resource
 
     def get_resource(self, resource_type: type[Resource]) -> Resource | None:
-        return self._resources.get(resource_type).instance
+        return self._resources.get(resource_type)
 
-    def resource_for(self, resource_type: type[R]) -> R:
+    def resource_for(self, resource_type: type[Resource[T_Instance]]) -> T_Instance:
         """Get resource that must exist"""
         resource = self.get_resource(resource_type)
         assert resource is not None, f"Missing {resource_type.__name__}"
-        return resource
+        return resource.instance
 
     def has_resource(self, resource_type: type[Resource]) -> bool:
         return resource_type in self._resources

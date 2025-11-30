@@ -9,6 +9,10 @@ class Camera:
         self.x: int = 0
         self.y: int = 0
 
+        # Screen offset for when camera is rendering in a panel
+        self.screen_offset_x: int = 0
+        self.screen_offset_y: int = 0
+
     def update(self, target_x: int, target_y: int) -> None:
         target_camera_x: int = target_x - (self.width // 2)
         target_camera_y: int = target_y - (self.height // 2)
@@ -17,10 +21,24 @@ class Camera:
         self.y = self._clamp(target_camera_y, 0, max(0, self.map_height - self.height))
 
     def world_to_screen(self, world_x: int, world_y: int) -> tuple[int, int]:
-        return (world_x - self.x, world_y - self.y)
+        return (
+            world_x - self.x + self.screen_offset_x,
+            world_y - self.y + self.screen_offset_y,
+        )
 
     def screen_to_world(self, screen_x: int, screen_y: int) -> tuple[int, int]:
-        return (screen_x + self.x, screen_y + self.y)
+        return (
+            screen_x + self.x - self.screen_offset_x,
+            screen_y + self.y - self.screen_offset_y,
+        )
+
+    def set_screen_offset(self, offset_x: int, offset_y: int):
+        self.screen_offset_x = offset_x
+        self.screen_offset_y = offset_y
+
+    def resize(self, width: int, height: int):
+        self.width = width
+        self.height = height
 
     def is_visible(self, world_x: int, world_y: int) -> bool:
         return (

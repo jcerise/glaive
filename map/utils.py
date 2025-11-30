@@ -24,11 +24,11 @@ def render_map(
                 screen_x, screen_y = camera.world_to_screen(world_x, world_y)
 
                 # Draw map tiles on the lowest level of the terminal, at screen position
-                terminal.draw_glyph(screen_x, screen_y, glyph, 0)
+                terminal.draw_at_layer(screen_x, screen_y, glyph, 0)
             elif game_map.is_explored(world_x, world_y):
                 glyph = glyph.dim()
                 # Convert world coordinates to screen coordinates prior to drawing
                 screen_x, screen_y = camera.world_to_screen(world_x, world_y)
 
                 # Draw map tiles on the lowest level of the terminal, at screen position
-                terminal.draw_glyph(screen_x, screen_y, glyph, 0)
+                terminal.draw_at_layer(screen_x, screen_y, glyph, 0)
