@@ -14,9 +14,9 @@ Currently implemented features:
 - Mapping capabilities
 - Camera
 - FOV
+- User Interface
 
 Upcoming features:
-- User Interface
 - Actual gameplay (proper map generation, enemies, combat, enemy pathfinding)
 - Items, inventory
 - Equipment
