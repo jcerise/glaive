@@ -24,4 +24,13 @@ class ArenaGenerator(BaseGenerator):
                 else:
                     game_map.set_tile(x, y, TileType.FLOOR)
 
+        # Second pass to fill in some pillars (for testing FoV and pathfinding)
+        pillar_spacing: int = 8
+        for pillar_y in range(pillar_spacing, self.height - 2, pillar_spacing):
+            for pillar_x in range(pillar_spacing, self.width - 2, pillar_spacing):
+                # Draw a 2x2 pillar of wall
+                for dy in range(2):
+                    for dx in range(2):
+                        game_map.set_tile(pillar_x + dx, pillar_y + dy, TileType.WALL)
+
         return game_map
