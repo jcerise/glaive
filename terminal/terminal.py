@@ -24,9 +24,9 @@ class GlaiveTerminal:
         # Initialize the window with the given dimensions, name, and composition settings
         blt.open()
         blt.set(
-            f"window: size={self.window_width}x{self.window_height}, title='{self.window_name}'"
+            f"window: size={self.window_width}x{self.window_height}, title='{self.window_name}'; font: ./UbuntuMono.ttf, size=24"
         )
-        blt.composition(self.compose_tiles)
+        blt.composition(blt.TK_ON if self.compose_tiles else blt.TK_OFF)
         blt.color(blt.color_from_name("white"))
         blt.refresh()
 
@@ -77,4 +77,12 @@ class GlaiveTerminal:
     def clear_layer(self, layer: int):
         blt.layer(layer)
         blt.clear_area(0, 0, self.window_width, self.window_height)
+        blt.layer(0)
+
+    def clear_area(self, x: int, y: int, width: int, height: int, layer: int):
+        """
+        Clear a rectangular area on a given layer
+        """
+        blt.layer(layer)
+        blt.clear_area(x, y, width, height)
         blt.layer(0)

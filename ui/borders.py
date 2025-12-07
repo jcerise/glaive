@@ -94,9 +94,14 @@ def fill_rect(
     layer: int = 2,
 ):
     """
-    Fill a rectangle with a given character. Useful for clearinga rectangle
+    Fill a rectangle with a given character. Useful for clearing a rectangle
     """
+    # First, clear everything in the area
+    for clear_layer in range(layer):
+        terminal.clear_area(rect.x, rect.y, rect.width, rect.height, clear_layer)
+
+    # Next, draw the backrgound layer on layer 0
     for y in range(rect.y, rect.y2):
-        glyph: Glyph = Glyph("█", fg_color, bg_color)
         for x in range(rect.x, rect.x2):
-            terminal.draw_at_layer(x, y, glyph, layer)
+            space_glyph: Glyph = Glyph(" ", bg_color, bg_color)
+            terminal.draw_at_layer(x, y, space_glyph, 0)

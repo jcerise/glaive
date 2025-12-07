@@ -2,13 +2,18 @@ from camera.camera import Camera
 from camera.utils import compute_fov
 from ecs.components import Drawable, IsPlayer, Position, TurnConsumed
 from ecs.resources import CameraResource, MapResource, TerminalResource, UIResource
-from ecs.systems import MovementSystem, RenderSystem, SystemScheduler, UIRenderSystem
+from ecs.systems import (
+    MapRenderSystem,
+    MovementSystem,
+    RenderSystem,
+    SystemScheduler,
+    UIRenderSystem,
+)
 from ecs.world import World
 from input.handlers import MainGameHandler
 from input.input import InputHandler, InputManager
 from map.generators import ArenaGenerator
 from map.map import GameMap
-from map.utils import render_map
 from terminal.glyph import Glyph
 from terminal.terminal import GlaiveTerminal
 from ui.layout import LayoutManager
@@ -47,6 +52,7 @@ world.add_component(player, Drawable(Glyph("@", "white"), "Player"))
 camera.update(1, 1)
 
 system_scheduler: SystemScheduler = SystemScheduler()
+system_scheduler.add_system(MapRenderSystem(), "render")
 system_scheduler.add_system(RenderSystem(), "render")
 system_scheduler.add_system(UIRenderSystem(), "render")
 system_scheduler.add_system(MovementSystem(), "action")
@@ -62,7 +68,6 @@ message_log.add("Use arrow keys or hjklyubn to move.", "gray")
 
 # Initial render
 g_term.clear()
-render_map(game_map, g_term, world, camera)
 system_scheduler.update(world)
 g_term.refresh()
 
@@ -84,6 +89,5 @@ while True:
     player_pos: Position = world.component_for(player, Position)
     camera.update(player_pos.x, player_pos.y)
     compute_fov(game_map, player_pos.x, player_pos.y)
-    render_map(game_map, g_term, world, camera)
 
     g_term.refresh()

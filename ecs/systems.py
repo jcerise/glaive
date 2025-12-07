@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Optional
 from ecs.components import Drawable, IsPlayer, MoveIntent, Position, TurnConsumed
 from ecs.resources import CameraResource, MapResource, TerminalResource, UIResource
 from ecs.world import World
+from map.utils import render_map
 
 if TYPE_CHECKING:
     from camera.camera import Camera
@@ -103,3 +104,17 @@ class MovementSystem(System):
             return True
 
         return False
+
+
+class MapRenderSystem(System):
+    """
+    Renders the map layer
+    This always gets drawn at the lowest level of the terminal (0)
+    """
+
+    def update(self, world: World) -> None:
+        terminal: "GlaiveTerminal" = world.resource_for(TerminalResource)
+        game_map: "GameMap" = world.resource_for(MapResource)
+        camera: "Camera" = world.resource_for(CameraResource)
+
+        render_map(game_map, terminal, world, camera)
