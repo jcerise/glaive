@@ -1,6 +1,15 @@
 from camera.camera import Camera
 from camera.utils import compute_fov
-from ecs.components import Drawable, IsPlayer, Position, TurnConsumed
+from ecs.components import (
+    Drawable,
+    Experience,
+    Health,
+    IsPlayer,
+    Mana,
+    Position,
+    Stats,
+    TurnConsumed,
+)
 from ecs.resources import CameraResource, MapResource, TerminalResource, UIResource
 from ecs.systems import (
     MapRenderSystem,
@@ -47,6 +56,10 @@ player: int = world.create_entity()
 world.add_component(player, IsPlayer())
 world.add_component(player, Position(1, 1))
 world.add_component(player, Drawable(Glyph("@", "white"), "Player"))
+world.add_component(player, Stats())  # Default stats (all 10s)
+world.add_component(player, Health(current_hp=30))
+world.add_component(player, Mana(current_mp=15))
+world.add_component(player, Experience())
 
 # Update the camera with the players position, to initialize its location
 camera.update(1, 1)
