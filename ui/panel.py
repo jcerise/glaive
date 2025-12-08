@@ -60,7 +60,7 @@ class StatsPanel(Panel):
     border_color: str = "yellow"
 
     def render_content(self, terminal: "GlaiveTerminal", world: "World"):
-        from ecs.components import IsPlayer, Position
+        from ecs.components import Experience, Health, IsPlayer, Mana, Position, Stats
 
         inner: Rect = self.inner_rect
 
@@ -72,16 +72,85 @@ class StatsPanel(Panel):
 
         y: int = inner.y
 
+        # Header: Name and Level
+        exp = world.get_component(player, Experience)
+        level_str = f"Lv.{exp.level}" if exp else ""
         terminal.draw_string_at_layer(inner.x, y, "Player", "white", self.content_layer)
+        terminal.draw_string_at_layer(
+            inner.x + inner.width - len(level_str),
+            y,
+            level_str,
+            "yellow",
+            self.content_layer,
+        )
         y += 1
 
         separator: str = "-" * inner.width
         terminal.draw_string_at_layer(
             inner.x, y, separator, "dark gray", self.content_layer
         )
-        y += 2
+        y += 1
 
-        # Just print the players position for now (we have no stats yet)
+        # HP
+        stats: Stats = world.component_for(player, Stats)
+        health = world.component_for(player, Health)
+        if health and stats and exp:
+            max_hp = health.max_hp(stats, exp.level)
+            hp_pct = health.current_hp / max_hp
+            hp_color = "green" if hp_pct > 0.5 else "yellow" if hp_pct > 0.25 else "red"
+            hp_text = f"HP: {health.current_hp}/{max_hp}"
+            terminal.draw_string_at_layer(
+                inner.x, y, hp_text, hp_color, self.content_layer
+            )
+            y += 1
+
+        # MP
+        mana = world.component_for(player, Mana)
+        if mana and stats and exp:
+            max_mp = mana.max_mp(stats, exp.level)
+            mp_text = f"MP: {mana.current_mp}/{max_mp}"
+            terminal.draw_string_at_layer(
+                inner.x, y, mp_text, "light blue", self.content_layer
+            )
+            y += 1
+
+        # XP
+        if exp:
+            current, needed = exp.xp_progress()
+            xp_text = f"XP: {current}/{needed}"
+            terminal.draw_string_at_layer(
+                inner.x, y, xp_text, "gray", self.content_layer
+            )
+            y += 2
+
+        # Stats (display in two columns)
+        if stats:
+            col1_x = inner.x
+            col2_x = inner.x + inner.width // 2
+
+            terminal.draw_string_at_layer(
+                col1_x, y, f"STR: {stats.strength:2}", "white", self.content_layer
+            )
+            terminal.draw_string_at_layer(
+                col2_x, y, f"INT: {stats.intelligence:2}", "white", self.content_layer
+            )
+            y += 1
+            terminal.draw_string_at_layer(
+                col1_x, y, f"DEX: {stats.dexterity:2}", "white", self.content_layer
+            )
+            terminal.draw_string_at_layer(
+                col2_x, y, f"WIS: {stats.wisdom:2}", "white", self.content_layer
+            )
+            y += 1
+            terminal.draw_string_at_layer(
+                col1_x, y, f"CON: {stats.constitution:2}", "white", self.content_layer
+            )
+            terminal.draw_string_at_layer(
+                col2_x, y, f"CHA: {stats.charisma:2}", "white", self.content_layer
+            )
+            y += 2
+
+        # Position (For now, to fill out the sidebar a bit...)
         pos = world.get_component(player, Position)
         if pos:
             terminal.draw_string_at_layer(
@@ -89,13 +158,8 @@ class StatsPanel(Panel):
             )
             y += 1
             terminal.draw_string_at_layer(
-                inner.x + 2, y, f"X: {pos.x}", "white", self.content_layer
+                inner.x + 2, y, f"X: {pos.x}  Y: {pos.y}", "white", self.content_layer
             )
-            y += 1
-            terminal.draw_string_at_layer(
-                inner.x + 2, y, f"Y: {pos.y}", "white", self.content_layer
-            )
-            y += 2
 
 
 class LogPanel(Panel):
