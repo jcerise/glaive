@@ -14,6 +14,11 @@ class IsPlayer(Component):
 
 
 @dataclass
+class IsActor(Component):
+    pass
+
+
+@dataclass
 class TurnConsumed(Component):
     pass
 

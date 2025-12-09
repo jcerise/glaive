@@ -4,6 +4,8 @@ from ecs.components import (
     Drawable,
     Experience,
     Health,
+    Inventory,
+    IsActor,
     IsPlayer,
     Mana,
     Position,
@@ -21,6 +23,7 @@ from ecs.systems import (
 from ecs.world import World
 from input.handlers import MainGameHandler
 from input.input import InputHandler, InputManager
+from items.components import Consumable, Equipment, Item, OnGround
 from map.generators import ArenaGenerator
 from map.map import GameMap
 from terminal.glyph import Glyph
@@ -29,6 +32,33 @@ from ui.layout import LayoutManager
 from ui.log import MessageLog
 from ui.popup import PopupStack
 from ui.state import UIState
+
+
+def create_test_items(world: World):
+    """Spawn some test items near player start"""
+    # Health potion at (3, 1)
+    potion = world.create_entity()
+    world.add_component(potion, Item(item_type="consumable", base_value=25))
+    world.add_component(potion, Consumable(effect_type="heal", effect_power=20))
+    world.add_component(potion, Drawable(Glyph("!", "red"), "Health Potion"))
+    world.add_component(potion, Position(3, 1))
+    world.add_component(potion, OnGround())
+
+    # Sword at (2, 2)
+    sword = world.create_entity()
+    world.add_component(sword, Item(item_type="equipment", base_value=50))
+    world.add_component(sword, Equipment(slot="main_hand", base_damage=5))
+    world.add_component(sword, Drawable(Glyph("|", "light gray"), "Short Sword"))
+    world.add_component(sword, Position(2, 2))
+    world.add_component(sword, OnGround())
+
+    # Gold coins at (1, 2)
+    gold = world.create_entity()
+    world.add_component(gold, Item(item_type="treasure", base_value=10))
+    world.add_component(gold, Drawable(Glyph("$", "yellow"), "Gold Coins"))
+    world.add_component(gold, Position(1, 2))
+    world.add_component(gold, OnGround())
+
 
 g_term: GlaiveTerminal = GlaiveTerminal("Glaive", 80, 25)
 g_term.init_window()
@@ -54,12 +84,17 @@ input_manager: InputManager = InputManager(initial_handler)
 
 player: int = world.create_entity()
 world.add_component(player, IsPlayer())
+world.add_component(player, IsActor())
 world.add_component(player, Position(1, 1))
 world.add_component(player, Drawable(Glyph("@", "white"), "Player"))
 world.add_component(player, Stats())  # Default stats (all 10s)
 world.add_component(player, Health(current_hp=30))
 world.add_component(player, Mana(current_mp=15))
 world.add_component(player, Experience())
+world.add_component(player, Inventory(max_slots=20))
+
+# Create a few items laying around to test inventory, and inventory actions
+create_test_items(world)
 
 # Update the camera with the players position, to initialize its location
 camera.update(1, 1)

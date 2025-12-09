@@ -2,6 +2,8 @@ from typing import TYPE_CHECKING, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from ecs.components import Inventory
+from items.inventory import get_free_slots, get_used_slots
 from ui.borders import DEFAULT_BORDER, BorderStyle, draw_border
 from ui.log import MessageLog
 from ui.rect import Rect
@@ -73,7 +75,7 @@ class StatsPanel(Panel):
         y: int = inner.y
 
         # Header: Name and Level
-        exp = world.get_component(player, Experience)
+        exp: Experience = world.component_for(player, Experience)
         level_str = f"Lv.{exp.level}" if exp else ""
         terminal.draw_string_at_layer(inner.x, y, "Player", "white", self.content_layer)
         terminal.draw_string_at_layer(
@@ -93,7 +95,7 @@ class StatsPanel(Panel):
 
         # HP
         stats: Stats = world.component_for(player, Stats)
-        health = world.component_for(player, Health)
+        health: Health = world.component_for(player, Health)
         if health and stats and exp:
             max_hp = health.max_hp(stats, exp.level)
             hp_pct = health.current_hp / max_hp
@@ -105,7 +107,7 @@ class StatsPanel(Panel):
             y += 1
 
         # MP
-        mana = world.component_for(player, Mana)
+        mana: Mana = world.component_for(player, Mana)
         if mana and stats and exp:
             max_mp = mana.max_mp(stats, exp.level)
             mp_text = f"MP: {mana.current_mp}/{max_mp}"
@@ -150,16 +152,15 @@ class StatsPanel(Panel):
             )
             y += 2
 
-        # Position (For now, to fill out the sidebar a bit...)
-        pos = world.get_component(player, Position)
-        if pos:
-            terminal.draw_string_at_layer(
-                inner.x, y, "Position:", "gray", self.content_layer
-            )
-            y += 1
-            terminal.draw_string_at_layer(
-                inner.x + 2, y, f"X: {pos.x}  Y: {pos.y}", "white", self.content_layer
-            )
+        # Show how much inventory space the player has available
+        inventory: Inventory = world.component_for(player, Inventory)
+        terminal.draw_string_at_layer(
+            inner.x,
+            y,
+            f"Inventory: {get_used_slots(world, player)}/{inventory.max_slots}",
+            "gray",
+            self.content_layer,
+        )
 
 
 class LogPanel(Panel):

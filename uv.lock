@@ -80,9 +80,9 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "bearlibterminal", specifier = ">=0.15.8" },
-    { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "tcod", specifier = ">=19.6.0" },
+    { name = "bearlibterminal", specifier = "==0.15.8" },
+    { name = "pydantic", specifier = "==2.12.5" },
+    { name = "tcod", specifier = "==19.6.0" },
 ]
 
 [[package]]
