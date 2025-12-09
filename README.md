@@ -15,16 +15,16 @@ Currently implemented features:
 - Camera
 - FOV
 - User Interface
+- Items, inventory
 
 Upcoming features:
 - Actual gameplay (proper map generation, enemies, combat, enemy pathfinding)
-- Items, inventory
 - Equipment
 - Ranged combat
 - Spell casting
 - Saving and loading
 - Multi-layer dungeons
-- AI systems (possibly djikstra maps?)
+- AI systems (possibly djikstra maps? behavior trees?)
 
 ### AI NOTICE
 This is 100% brain coded, AI code generation is not used on this project
