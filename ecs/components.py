@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Optional
 
 from terminal.glyph import Glyph
 
@@ -9,6 +10,11 @@ class Component:
 
 @dataclass
 class IsPlayer(Component):
+    pass
+
+
+@dataclass
+class IsActor(Component):
     pass
 
 
@@ -79,3 +85,36 @@ class Experience(Component):
         )
         next_threshold: int = self.xp_for_next_level()
         return (self.current_xp - prev_threshold, next_threshold - prev_threshold)
+
+
+@dataclass
+class Inventory(Component):
+    """
+    Entity can hold items (consumables, equipment, treasure, etc)
+    """
+
+    max_slots: int = 20
+
+
+@dataclass
+class EquipmentSlots(Component):
+    """
+    Entity can equip items of type equipment
+    """
+
+    slots: dict[str, Optional[int]] = field(
+        default_factory=lambda: {
+            "head": None,
+            "torso": None,
+            "main_hand": None,
+            "off_hand": None,
+            "legs": None,
+            "feet": None,
+            "ring_1": None,
+            "ring_2": None,
+            "ring_3": None,
+            "ring_4": None,
+            "necklace": None,
+            "cape": None,
+        }
+    )

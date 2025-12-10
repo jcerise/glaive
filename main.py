@@ -2,8 +2,11 @@ from camera.camera import Camera
 from camera.utils import compute_fov
 from ecs.components import (
     Drawable,
+    EquipmentSlots,
     Experience,
     Health,
+    Inventory,
+    IsActor,
     IsPlayer,
     Mana,
     Position,
@@ -21,6 +24,12 @@ from ecs.systems import (
 from ecs.world import World
 from input.handlers import MainGameHandler
 from input.input import InputHandler, InputManager
+from items.factory import (
+    create_armor,
+    create_consumable,
+    create_treasure,
+    create_weapon,
+)
 from map.generators import ArenaGenerator
 from map.map import GameMap
 from terminal.glyph import Glyph
@@ -29,6 +38,60 @@ from ui.layout import LayoutManager
 from ui.log import MessageLog
 from ui.popup import PopupStack
 from ui.state import UIState
+
+
+def create_test_items(world: World):
+    """Spawn test items with various rarities near player start"""
+
+    create_consumable(world, "Health Potion", "!", "red", "heal", 20, 25, 3, 1)
+    create_consumable(world, "Mana Potion", "!", "blue", "restore_mana", 15, 25, 3, 2)
+
+    # Common sword - no affixes (white)
+    create_weapon(
+        world,
+        "Short Sword",
+        "|",
+        "light gray",
+        "main_hand",
+        5,
+        50,
+        2,
+        2,
+        rarity="common",
+    )
+    # Uncommon dagger - one affix (green)
+    create_weapon(
+        world, "Dagger", "/", "light gray", "main_hand", 3, 30, 4, 3, rarity="uncommon"
+    )
+    # Rare longsword - both prefix and suffix (light blue)
+    create_weapon(
+        world, "Longsword", "|", "light gray", "main_hand", 7, 100, 9, 2, rarity="rare"
+    )
+
+    # Common leather armor - no affixes (white)
+    create_armor(
+        world, "Leather Armor", "[", "orange", "torso", 3, 75, 5, 2, rarity="common"
+    )
+    # Uncommon helmet - one affix (green)
+    create_armor(
+        world, "Iron Helmet", "^", "light gray", "head", 2, 40, 5, 3, rarity="uncommon"
+    )
+    # Rare shield - both prefix and suffix (light blue)
+    create_armor(
+        world, "Tower Shield", ")", "light gray", "off_hand", 4, 80, 6, 2, rarity="rare"
+    )
+    # Random rarity boots
+    create_armor(world, "Leather Boots", "[", "orange", "feet", 1, 25, 6, 3)
+    # Random rarity ring
+    create_armor(world, "Silver Ring", "=", "light gray", "ring", 0, 60, 7, 2)
+    # Random rarity necklace
+    create_armor(world, "Gold Necklace", '"', "yellow", "necklace", 0, 80, 7, 3)
+    # Random rarity cape
+    create_armor(world, "Traveler's Cloak", "(", "dark green", "cape", 1, 45, 8, 2)
+
+    create_treasure(world, "Gold Coins", "$", "yellow", "gold", 10, 1, 2)
+    create_treasure(world, "Ruby", "*", "red", "gem", 100, 8, 3)
+
 
 g_term: GlaiveTerminal = GlaiveTerminal("Glaive", 80, 25)
 g_term.init_window()
@@ -54,12 +117,18 @@ input_manager: InputManager = InputManager(initial_handler)
 
 player: int = world.create_entity()
 world.add_component(player, IsPlayer())
+world.add_component(player, IsActor())
 world.add_component(player, Position(1, 1))
 world.add_component(player, Drawable(Glyph("@", "white"), "Player"))
 world.add_component(player, Stats())  # Default stats (all 10s)
 world.add_component(player, Health(current_hp=30))
 world.add_component(player, Mana(current_mp=15))
 world.add_component(player, Experience())
+world.add_component(player, Inventory(max_slots=20))
+world.add_component(player, EquipmentSlots())
+
+# Create a few items laying around to test inventory, and inventory actions
+create_test_items(world)
 
 # Update the camera with the players position, to initialize its location
 camera.update(1, 1)

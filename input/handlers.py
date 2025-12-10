@@ -1,10 +1,14 @@
 from bearlibterminal import terminal
 
-from ecs.components import IsPlayer, MoveIntent
+from ecs.components import Drawable, IsPlayer, MoveIntent, Position
 from ecs.resources import UIResource
 from ecs.world import World
+from input.equipment_handler import EquipmentHandler
 from input.input import ActionResult, InputHandler
-from ui.menu import Menu, MenuHandler, create_menu_popup
+from input.inventory_handler import InventoryHandler
+from items.components import Equipment
+from items.inventory import can_pickup, get_items_at_position, pickup_item
+from ui.menu import Menu, MenuHandler, Popup, create_menu_popup
 
 
 class MainGameHandler(InputHandler):
@@ -29,8 +33,9 @@ class MainGameHandler(InputHandler):
             terminal.TK_B: self.move_southwest,
             terminal.TK_N: self.move_southeast,
             # TODO: Actions
-            # 'g': self.pickup_item,
+            terminal.TK_G: self.pickup_item,
             terminal.TK_I: self.open_inventory,
+            terminal.TK_E: self.open_equipment,
             terminal.TK_M: self.open_main_menu,
             # 'c': self.start_cast_spell,
             # 't': self.start_throw,
@@ -93,29 +98,77 @@ class MainGameHandler(InputHandler):
         return ActionResult.push(handler)
 
     def open_inventory(self) -> ActionResult:
-        ui_state = self.world.resource_for(UIResource)
-        # Placeholder - implement inventory screen
-        menu = Menu(title="Iventory")
-        menu.add_item("Short Sword", self._not_implemented)
-        menu.add_item("Light shield", self._not_implemented)
-        menu.add_item("Boots [Soaring + 2]", self._not_implemented)
-        menu.add_item("Gloves of the Giant", self._not_implemented)
-        menu.add_item("Short Sword", self._not_implemented)
-        menu.add_item("Light shield", self._not_implemented)
-        menu.add_item("Boots [Soaring + 2]", self._not_implemented)
-        menu.add_item("Gloves of the Giant", self._not_implemented)
-        menu.add_item("Short Sword", self._not_implemented)
-        menu.add_item("Light shield", self._not_implemented)
-        menu.add_item("Boots [Soaring + 2]", self._not_implemented)
-        menu.add_item("Gloves of the Giant", self._not_implemented)
-        # Create popup for the menu
-        popup = create_menu_popup(menu, width=40)
+        ui_state: UIResource = self.world.resource_for(UIResource)
+        handler = InventoryHandler(
+            self.world, ui_state.popup_stack, parent_handler=self
+        )
+        return ActionResult.push(handler)
 
-        # Create handler (passes self so menu knows which keys to avoid)
-        handler = MenuHandler(
+    def pickup_item(self) -> ActionResult:
+        """Pick up item(s) at player's feet"""
+        ui_state: UIResource = self.world.resource_for(UIResource)
+
+        players: set[int] = self.world.get_entities_with(IsPlayer)
+        player: int = next(iter(players))
+        pos: Position = self.world.component_for(player, Position)
+
+        items: list[int] = get_items_at_position(self.world, pos.x, pos.y)
+
+        if not items:
+            ui_state.message_log.add("Nothing here to pick up.", "gray")
+            return ActionResult.no_op()
+
+        if len(items) == 1:
+            # Single item - pick it up directly
+            item_id: int = items[0]
+            drawable: Drawable = self.world.component_for(item_id, Drawable)
+
+            if can_pickup(self.world, player, item_id):
+                pickup_item(self.world, player, item_id)
+                ui_state.message_log.add(f"Picked up {drawable.name}.", "white")
+            else:
+                ui_state.message_log.add("Inventory is full.", "red")
+            return ActionResult.no_op()
+        else:
+            # Multiple items - open pickup menu
+            return self._open_pickup_menu(items)
+
+    def _open_pickup_menu(self, items: list[int]) -> ActionResult:
+        """Open menu to select which item to pick up"""
+        ui_state: UIResource = self.world.resource_for(UIResource)
+
+        menu: Menu = Menu(title="Pick up")
+        for item_id in items:
+            drawable: Drawable = self.world.component_for(item_id, Drawable)
+            menu.add_item(drawable.name, lambda iid=item_id: self._do_pickup(iid))
+
+        popup: Popup = create_menu_popup(menu, width=35)
+        handler: MenuHandler = MenuHandler(
             menu, ui_state.popup_stack, self.world, popup, parent_handler=self
         )
+        return ActionResult.push(handler)
 
+    def _do_pickup(self, item_id: int) -> ActionResult:
+        """Actually pick up the selected item"""
+        ui_state: UIResource = self.world.resource_for(UIResource)
+
+        players: set[int] = self.world.get_entities_with(IsPlayer)
+        player: int = next(iter(players))
+        drawable: Drawable = self.world.component_for(item_id, Drawable)
+
+        if can_pickup(self.world, player, item_id):
+            pickup_item(self.world, player, item_id)
+            ui_state.message_log.add(f"Picked up {drawable.name}.", "white")
+        else:
+            ui_state.message_log.add("Inventory is full.", "red")
+
+        return ActionResult.pop_handler()
+
+    def open_equipment(self) -> ActionResult:
+        ui_state: UIResource = self.world.resource_for(UIResource)
+        handler: EquipmentHandler = EquipmentHandler(
+            self.world, ui_state.popup_stack, parent_handler=self
+        )
         return ActionResult.push(handler)
 
     def _not_implemented(self) -> ActionResult:

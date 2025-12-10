@@ -5,7 +5,7 @@ description = "A traditional Roguelike. Get in, kill everything in your way, gra
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "bearlibterminal>=0.15.8",
-    "pydantic>=2.12.5",
-    "tcod>=19.6.0",
+    "bearlibterminal == 0.15.8",
+    "pydantic == 2.12.5",
+    "tcod == 19.6.0",
 ]

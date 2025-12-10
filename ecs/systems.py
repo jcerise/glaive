@@ -1,8 +1,16 @@
 from typing import TYPE_CHECKING, Optional
 
-from ecs.components import Drawable, IsPlayer, MoveIntent, Position, TurnConsumed
+from ecs.components import (
+    Drawable,
+    IsActor,
+    IsPlayer,
+    MoveIntent,
+    Position,
+    TurnConsumed,
+)
 from ecs.resources import CameraResource, MapResource, TerminalResource, UIResource
 from ecs.world import World
+from items.components import OnGround
 from map.utils import render_map
 
 if TYPE_CHECKING:
@@ -42,7 +50,22 @@ class RenderSystem(System):
         terminal: "GlaiveTerminal" = world.resource_for(TerminalResource)
         camera: "Camera" = world.resource_for(CameraResource)
         game_map: "GameMap" = world.resource_for(MapResource)
-        for entity in world.get_entities_with(Position, Drawable):
+
+        # Render items on the ground first
+        for entity in world.get_entities_with(Position, Drawable, OnGround):
+            pos_component: Position = world.component_for(entity, Position)
+            drawable_component: Drawable = world.component_for(entity, Drawable)
+
+            if camera.is_visible(
+                pos_component.x, pos_component.y
+            ) and game_map.is_visible(pos_component.x, pos_component.y):
+                screen_x, screen_y = camera.world_to_screen(
+                    pos_component.x, pos_component.y
+                )
+                terminal.draw_at_layer(screen_x, screen_y, drawable_component.glyph, 1)
+
+        # Then render any actors (player, monsters, etc)
+        for entity in world.get_entities_with(Position, Drawable, IsActor):
             pos_component: Position = world.component_for(entity, Position)
             drawable_component: Drawable = world.component_for(entity, Drawable)
             player_component: Optional[IsPlayer] = world.get_component(entity, IsPlayer)
