@@ -2,10 +2,14 @@ from typing import TYPE_CHECKING, Optional
 
 from ecs.components import Drawable, IsPlayer, Position
 from ecs.resources import UIResource
+from input.examine_handler import ExamineHandler
 from input.input import ActionResult, InputHandler
+from items.affixes import ItemAffixes
 from items.components import Equipment, Item
 from items.equipment import can_equip, equip_item
 from items.inventory import drop_item, get_inventory_items
+from items.item_types import RARITY_COLORS
+from ui.examine import create_examine_popup
 from ui.menu import Menu, MenuHandler, create_menu_popup
 from ui.popup import Popup, PopupStack
 
@@ -29,7 +33,13 @@ class InventoryHandler(MenuHandler):
         self._parent_handler = parent_handler
 
         menu: Menu = self._build_inventory_menu()
-        popup: Popup = create_menu_popup(menu, width=40, title="Inventory")
+
+        # Calculate width based on longest menu item label
+        # Format is "x) label" so add 3 for hotkey prefix, plus 4 for border/padding
+        max_label_len = max((len(item.label) for item in menu.items), default=10)
+        popup_width = max(max_label_len + 7, 20)
+
+        popup: Popup = create_menu_popup(menu, width=popup_width, title="Inventory")
 
         super().__init__(menu, popup_stack, world, popup, parent_handler)
 
@@ -50,13 +60,25 @@ class InventoryHandler(MenuHandler):
         else:
             for item_id in items:
                 drawable = self.world.component_for(item_id, Drawable)
+                item: Item = self.world.component_for(item_id, Item)
+                affixes: ItemAffixes | None = self.world.get_component(
+                    item_id, ItemAffixes
+                )
 
-                label = drawable.name
+                # Build display name with affixes
+                if affixes:
+                    label = affixes.get_display_name(drawable.name)
+                else:
+                    label = drawable.name
+
+                # Get rarity color
+                color = RARITY_COLORS.get(item.rarity, "white")
 
                 menu.add_item(
                     label,
                     lambda iid=item_id: self._open_item_actions(iid),
                     enabled=True,
+                    color=color,
                 )
 
         return menu
@@ -102,27 +124,13 @@ class InventoryHandler(MenuHandler):
         return ActionResult.pop_handler()
 
     def _examine_item(self, item_id: int) -> ActionResult:
-        """Show item details in message log"""
+        """Show item details in examine popup"""
         ui_state: UIResource = self.world.resource_for(UIResource)
-        drawable: Drawable = self.world.component_for(item_id, Drawable)
-        item: Item = self.world.component_for(item_id, Item)
 
-        ui_state.message_log.add(f"{drawable.name}", "yellow")
-        ui_state.message_log.add(f"  Type: {item.item_type}", "gray")
-        ui_state.message_log.add(f"  Value: {item.base_value} gold", "gray")
+        popup: Popup = create_examine_popup(self.world, item_id)
+        handler: ExamineHandler = ExamineHandler(popup, ui_state.popup_stack)
 
-        # Show equipment stats if applicable
-        equipment = self.world.get_component(item_id, Equipment)
-        if equipment:
-            ui_state.message_log.add(f"  Slot: {equipment.slot}", "gray")
-            if equipment.base_damage > 0:
-                ui_state.message_log.add(f"  Damage: +{equipment.base_damage}", "gray")
-            if equipment.base_defense > 0:
-                ui_state.message_log.add(
-                    f"  Defense: +{equipment.base_defense}", "gray"
-                )
-
-        return ActionResult.pop_handler()
+        return ActionResult.push(handler)
 
     def _equip_item(self, item_id: int) -> ActionResult:
         """Equip item from inventory"""

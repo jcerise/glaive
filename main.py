@@ -24,7 +24,12 @@ from ecs.systems import (
 from ecs.world import World
 from input.handlers import MainGameHandler
 from input.input import InputHandler, InputManager
-from items.components import Consumable, Equipment, Item, OnGround
+from items.factory import (
+    create_armor,
+    create_consumable,
+    create_treasure,
+    create_weapon,
+)
 from map.generators import ArenaGenerator
 from map.map import GameMap
 from terminal.glyph import Glyph
@@ -36,113 +41,56 @@ from ui.state import UIState
 
 
 def create_test_items(world: World):
-    """Spawn some test items near player start"""
+    """Spawn test items with various rarities near player start"""
 
-    # Health potion at (3, 1)
-    potion = world.create_entity()
-    world.add_component(potion, Item(item_type="consumable", base_value=25))
-    world.add_component(potion, Consumable(effect_type="heal", effect_power=20))
-    world.add_component(potion, Drawable(Glyph("!", "red"), "Health Potion"))
-    world.add_component(potion, Position(3, 1))
-    world.add_component(potion, OnGround())
+    create_consumable(world, "Health Potion", "!", "red", "heal", 20, 25, 3, 1)
+    create_consumable(world, "Mana Potion", "!", "blue", "restore_mana", 15, 25, 3, 2)
 
-    # Mana potion at (3, 2)
-    mana_pot = world.create_entity()
-    world.add_component(mana_pot, Item(item_type="consumable", base_value=25))
-    world.add_component(
-        mana_pot, Consumable(effect_type="restore_mana", effect_power=15)
+    # Common sword - no affixes (white)
+    create_weapon(
+        world,
+        "Short Sword",
+        "|",
+        "light gray",
+        "main_hand",
+        5,
+        50,
+        2,
+        2,
+        rarity="common",
     )
-    world.add_component(mana_pot, Drawable(Glyph("!", "blue"), "Mana Potion"))
-    world.add_component(mana_pot, Position(3, 2))
-    world.add_component(mana_pot, OnGround())
+    # Uncommon dagger - one affix (green)
+    create_weapon(
+        world, "Dagger", "/", "light gray", "main_hand", 3, 30, 4, 3, rarity="uncommon"
+    )
+    # Rare longsword - both prefix and suffix (light blue)
+    create_weapon(
+        world, "Longsword", "|", "light gray", "main_hand", 7, 100, 9, 2, rarity="rare"
+    )
 
-    # Short sword at (2, 2)
-    sword = world.create_entity()
-    world.add_component(sword, Item(item_type="equipment", base_value=50))
-    world.add_component(sword, Equipment(slot="main_hand", base_damage=5))
-    world.add_component(sword, Drawable(Glyph("|", "light gray"), "Short Sword"))
-    world.add_component(sword, Position(2, 2))
-    world.add_component(sword, OnGround())
+    # Common leather armor - no affixes (white)
+    create_armor(
+        world, "Leather Armor", "[", "orange", "torso", 3, 75, 5, 2, rarity="common"
+    )
+    # Uncommon helmet - one affix (green)
+    create_armor(
+        world, "Iron Helmet", "^", "light gray", "head", 2, 40, 5, 3, rarity="uncommon"
+    )
+    # Rare shield - both prefix and suffix (light blue)
+    create_armor(
+        world, "Tower Shield", ")", "light gray", "off_hand", 4, 80, 6, 2, rarity="rare"
+    )
+    # Random rarity boots
+    create_armor(world, "Leather Boots", "[", "orange", "feet", 1, 25, 6, 3)
+    # Random rarity ring
+    create_armor(world, "Silver Ring", "=", "light gray", "ring", 0, 60, 7, 2)
+    # Random rarity necklace
+    create_armor(world, "Gold Necklace", '"', "yellow", "necklace", 0, 80, 7, 3)
+    # Random rarity cape
+    create_armor(world, "Traveler's Cloak", "(", "dark green", "cape", 1, 45, 8, 2)
 
-    # Dagger at (4, 3)
-    dagger = world.create_entity()
-    world.add_component(dagger, Item(item_type="equipment", base_value=30))
-    world.add_component(dagger, Equipment(slot="main_hand", base_damage=3))
-    world.add_component(dagger, Drawable(Glyph("/", "light gray"), "Dagger"))
-    world.add_component(dagger, Position(4, 3))
-    world.add_component(dagger, OnGround())
-
-    # Leather armor at (5, 2)
-    armor = world.create_entity()
-    world.add_component(armor, Item(item_type="equipment", base_value=75))
-    world.add_component(armor, Equipment(slot="torso", base_defense=3))
-    world.add_component(armor, Drawable(Glyph("[", "orange"), "Leather Armor"))
-    world.add_component(armor, Position(5, 2))
-    world.add_component(armor, OnGround())
-
-    # Iron helmet at (5, 3)
-    helmet = world.create_entity()
-    world.add_component(helmet, Item(item_type="equipment", base_value=40))
-    world.add_component(helmet, Equipment(slot="head", base_defense=2))
-    world.add_component(helmet, Drawable(Glyph("^", "light gray"), "Iron Helmet"))
-    world.add_component(helmet, Position(5, 3))
-    world.add_component(helmet, OnGround())
-
-    # Wooden shield at (6, 2)
-    shield = world.create_entity()
-    world.add_component(shield, Item(item_type="equipment", base_value=35))
-    world.add_component(shield, Equipment(slot="off_hand", base_defense=2))
-    world.add_component(shield, Drawable(Glyph(")", "orange"), "Wooden Shield"))
-    world.add_component(shield, Position(6, 2))
-    world.add_component(shield, OnGround())
-
-    # Leather boots at (6, 3)
-    boots = world.create_entity()
-    world.add_component(boots, Item(item_type="equipment", base_value=25))
-    world.add_component(boots, Equipment(slot="feet", base_defense=1))
-    world.add_component(boots, Drawable(Glyph("[", "orange"), "Leather Boots"))
-    world.add_component(boots, Position(6, 3))
-    world.add_component(boots, OnGround())
-
-    # Silver ring at (7, 2)
-    ring = world.create_entity()
-    world.add_component(ring, Item(item_type="equipment", base_value=60))
-    world.add_component(
-        ring, Equipment(slot="ring", base_defense=0)
-    )  # Will add stat bonuses later
-    world.add_component(ring, Drawable(Glyph("=", "light gray"), "Silver Ring"))
-    world.add_component(ring, Position(7, 2))
-    world.add_component(ring, OnGround())
-
-    # Gold necklace at (7, 3)
-    necklace = world.create_entity()
-    world.add_component(necklace, Item(item_type="equipment", base_value=80))
-    world.add_component(necklace, Equipment(slot="necklace", base_defense=0))
-    world.add_component(necklace, Drawable(Glyph('"', "yellow"), "Gold Necklace"))
-    world.add_component(necklace, Position(7, 3))
-    world.add_component(necklace, OnGround())
-
-    # Cloak at (8, 2)
-    cape = world.create_entity()
-    world.add_component(cape, Item(item_type="equipment", base_value=45))
-    world.add_component(cape, Equipment(slot="cape", base_defense=1))
-    world.add_component(cape, Drawable(Glyph("(", "dark green"), "Traveler's Cloak"))
-    world.add_component(cape, Position(8, 2))
-    world.add_component(cape, OnGround())
-
-    # Gold coins at (1, 2)
-    gold = world.create_entity()
-    world.add_component(gold, Item(item_type="treasure", base_value=10))
-    world.add_component(gold, Drawable(Glyph("$", "yellow"), "Gold Coins"))
-    world.add_component(gold, Position(1, 2))
-    world.add_component(gold, OnGround())
-
-    # Ruby at (8, 3)
-    ruby = world.create_entity()
-    world.add_component(ruby, Item(item_type="treasure", base_value=100))
-    world.add_component(ruby, Drawable(Glyph("*", "red"), "Ruby"))
-    world.add_component(ruby, Position(8, 3))
-    world.add_component(ruby, OnGround())
+    create_treasure(world, "Gold Coins", "$", "yellow", "gold", 10, 1, 2)
+    create_treasure(world, "Ruby", "*", "red", "gem", 100, 8, 3)
 
 
 g_term: GlaiveTerminal = GlaiveTerminal("Glaive", 80, 25)

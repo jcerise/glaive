@@ -10,6 +10,7 @@ class Item(Component):
     slot_size: int = 1
     identified: bool = False
     cursed: bool = False
+    rarity: str = "common"  # common, uncommon, rare, epic, legendary
 
 
 @dataclass

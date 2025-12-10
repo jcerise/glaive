@@ -21,6 +21,8 @@ class MenuItem:
     enabled: bool = True
     # If set, use this key instead of auto-assigning
     hotkey_override: Optional[int] = None
+    # Custom color for this item's label (overrides default white)
+    label_color: Optional[str] = None
 
 
 class Menu:
@@ -94,9 +96,10 @@ class Menu:
         action: Callable[[], ActionResult],
         enabled: bool = True,
         hotkey: Optional[int] = None,
+        color: Optional[str] = None,
     ):
         """Add a menu item"""
-        item = MenuItem(label, action, enabled, hotkey)
+        item = MenuItem(label, action, enabled, hotkey, color)
         self.items.append(item)
         self._rebuild_keybinds()
         return self  # Allow chaining
@@ -168,7 +171,8 @@ class Menu:
             hotkey_char = self.get_hotkey_char(i)
 
             if item.enabled:
-                label_color = "white"
+                # Use custom color if set, otherwise default to white
+                label_color = item.label_color if item.label_color else "white"
                 key_color = "yellow"
             else:
                 label_color = "dark gray"

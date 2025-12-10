@@ -2,13 +2,17 @@ from typing import TYPE_CHECKING, Optional
 
 from ecs.components import Drawable, EquipmentSlots, IsPlayer
 from ecs.resources import UIResource
+from input.examine_handler import ExamineHandler
 from input.input import ActionResult, InputHandler
-from items.components import Equipment
+from items.affixes import ItemAffixes
+from items.components import Item
 from items.equipment import (
     SLOT_DISPLAY_NAMES,
     SLOT_DISPLAY_ORDER,
     unequip_to_inventory,
 )
+from items.item_types import RARITY_COLORS
+from ui.examine import create_examine_popup
 from ui.menu import Menu, MenuHandler, create_menu_popup
 from ui.popup import Popup, PopupStack
 
@@ -32,7 +36,13 @@ class EquipmentHandler(MenuHandler):
         self._parent_handler = parent_handler
 
         menu: Menu = self._build_equipment_menu()
-        popup: Popup = create_menu_popup(menu, width=35, title="Equipment")
+
+        # Calculate width based on longest menu item label
+        # Format is "x) label" so add 3 for hotkey prefix, plus 4 for border/padding
+        max_label_len = max((len(item.label) for item in menu.items), default=10)
+        popup_width = max(max_label_len + 7, 20)
+
+        popup: Popup = create_menu_popup(menu, width=popup_width, title="Equipment")
 
         super().__init__(menu, popup_stack, world, popup, parent_handler)
 
@@ -58,11 +68,25 @@ class EquipmentHandler(MenuHandler):
 
             if item_id is not None:
                 drawable = self.world.component_for(item_id, Drawable)
-                label = f"{slot_name}: {drawable.name}"
+                item: Item = self.world.component_for(item_id, Item)
+                affixes: ItemAffixes | None = self.world.get_component(
+                    item_id, ItemAffixes
+                )
+
+                # Build display name with affixes
+                if affixes:
+                    item_name = affixes.get_display_name(drawable.name)
+                else:
+                    item_name = drawable.name
+
+                label = f"{slot_name}: {item_name}"
+                color = RARITY_COLORS.get(item.rarity, "white")
+
                 menu.add_item(
                     label,
                     lambda s=slot, iid=item_id: self._open_slot_actions(s, iid),
                     enabled=True,
+                    color=color,
                 )
             else:
                 label = f"{slot_name}: (empty)"
@@ -103,16 +127,10 @@ class EquipmentHandler(MenuHandler):
         return ActionResult.pop_handler()
 
     def _examine_item(self, item_id: int) -> ActionResult:
-        """Show equipment details in message log"""
+        """Show equipment details in examine popup"""
         ui_state: UIResource = self.world.resource_for(UIResource)
-        drawable: Drawable = self.world.component_for(item_id, Drawable)
-        equipment: Equipment = self.world.component_for(item_id, Equipment)
 
-        ui_state.message_log.add(f"{drawable.name}", "yellow")
-        ui_state.message_log.add(f"  Slot: {equipment.slot}", "gray")
-        if equipment.base_damage > 0:
-            ui_state.message_log.add(f"  Damage: +{equipment.base_damage}", "gray")
-        if equipment.base_defense > 0:
-            ui_state.message_log.add(f"  Defense: +{equipment.base_defense}", "gray")
+        popup: Popup = create_examine_popup(self.world, item_id)
+        handler: ExamineHandler = ExamineHandler(popup, ui_state.popup_stack)
 
-        return ActionResult.pop_handler()
+        return ActionResult.push(handler)

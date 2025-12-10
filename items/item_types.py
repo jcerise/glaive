@@ -27,7 +27,7 @@ class ItemRarity(Enum):
 RARITY_COLORS = {
     "common": "white",
     "uncommon": "green",
-    "rare": "light_blue",
+    "rare": "light blue",
     "epic": "magenta",
     "legendary": "orange",
     "cursed": "red",

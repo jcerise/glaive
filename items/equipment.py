@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Optional
 
 from ecs.components import EquipmentSlots
+from items.affixes import ItemAffixes
 from items.components import Equipment, Equipped, InInventory, Item
 
 if TYPE_CHECKING:
@@ -178,22 +179,39 @@ def unequip_to_inventory(world: "World", owner: int, slot: str) -> Optional[int]
 
 def get_equipment_bonuses(world: "World", owner: int) -> dict[str, int]:
     """
-    Calculate total stat bonuses from all equipped items.
-    Returns dict like {"damage": 10, "defense": 5}
-    This is super simple right now, just handles damage and defense
-    Eventually, will handle stat increases and effects as well
+    Calculate total stat bonuses from all equipped items including affixes.
+    Returns dict with combat stats and core attributes.
     """
-    bonuses = {"damage": 0, "defense": 0}
+    bonuses: dict[str, int] = {
+        "damage": 0,
+        "defense": 0,
+        "strength": 0,
+        "dexterity": 0,
+        "constitution": 0,
+        "intelligence": 0,
+        "wisdom": 0,
+        "charisma": 0,
+        "max_hp": 0,
+        "max_mp": 0,
+    }
 
-    equip_slots: EquipmentSlots = world.component_for(owner, EquipmentSlots)
+    equip_slots: EquipmentSlots = world.get_component(owner, EquipmentSlots)
     if not equip_slots:
         return bonuses
 
     for slot, item_id in equip_slots.slots.items():
         if item_id is not None:
-            equipment: Equipment = world.component_for(item_id, Equipment)
+            # Base equipment stats
+            equipment: Equipment | None = world.get_component(item_id, Equipment)
             if equipment:
                 bonuses["damage"] += equipment.base_damage
                 bonuses["defense"] += equipment.base_defense
+
+            # Affix stats
+            affixes: ItemAffixes | None = world.get_component(item_id, ItemAffixes)
+            if affixes:
+                for stat, value in affixes.get_total_modifiers().items():
+                    if stat in bonuses:
+                        bonuses[stat] += value
 
     return bonuses
