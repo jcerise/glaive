@@ -3,8 +3,10 @@ from bearlibterminal import terminal
 from ecs.components import Drawable, IsPlayer, MoveIntent, Position
 from ecs.resources import UIResource
 from ecs.world import World
+from input.equipment_handler import EquipmentHandler
 from input.input import ActionResult, InputHandler
 from input.inventory_handler import InventoryHandler
+from items.components import Equipment
 from items.inventory import can_pickup, get_items_at_position, pickup_item
 from ui.menu import Menu, MenuHandler, Popup, create_menu_popup
 
@@ -33,6 +35,7 @@ class MainGameHandler(InputHandler):
             # TODO: Actions
             terminal.TK_G: self.pickup_item,
             terminal.TK_I: self.open_inventory,
+            terminal.TK_E: self.open_equipment,
             terminal.TK_M: self.open_main_menu,
             # 'c': self.start_cast_spell,
             # 't': self.start_throw,
@@ -160,6 +163,13 @@ class MainGameHandler(InputHandler):
             ui_state.message_log.add("Inventory is full.", "red")
 
         return ActionResult.pop_handler()
+
+    def open_equipment(self) -> ActionResult:
+        ui_state: UIResource = self.world.resource_for(UIResource)
+        handler: EquipmentHandler = EquipmentHandler(
+            self.world, ui_state.popup_stack, parent_handler=self
+        )
+        return ActionResult.push(handler)
 
     def _not_implemented(self) -> ActionResult:
         ui_state = self.world.resource_for(UIResource)

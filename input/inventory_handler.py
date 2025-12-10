@@ -3,7 +3,8 @@ from typing import TYPE_CHECKING, Optional
 from ecs.components import Drawable, IsPlayer, Position
 from ecs.resources import UIResource
 from input.input import ActionResult, InputHandler
-from items.components import Item
+from items.components import Equipment, Item
+from items.equipment import can_equip, equip_item
 from items.inventory import drop_item, get_inventory_items
 from ui.menu import Menu, MenuHandler, create_menu_popup
 from ui.popup import Popup, PopupStack
@@ -66,6 +67,12 @@ class InventoryHandler(MenuHandler):
         drawable: Drawable = self.world.component_for(item_id, Drawable)
 
         action_menu: Menu = Menu(title=drawable.name)
+
+        # Add "Equip" option if item is equipment
+        equipment = self.world.get_component(item_id, Equipment)
+        if equipment:
+            action_menu.add_item("Equip", lambda: self._equip_item(item_id))
+
         action_menu.add_item("Drop", lambda: self._drop_item(item_id))
         action_menu.add_item("Examine", lambda: self._examine_item(item_id))
 
@@ -103,5 +110,36 @@ class InventoryHandler(MenuHandler):
         ui_state.message_log.add(f"{drawable.name}", "yellow")
         ui_state.message_log.add(f"  Type: {item.item_type}", "gray")
         ui_state.message_log.add(f"  Value: {item.base_value} gold", "gray")
+
+        # Show equipment stats if applicable
+        equipment = self.world.get_component(item_id, Equipment)
+        if equipment:
+            ui_state.message_log.add(f"  Slot: {equipment.slot}", "gray")
+            if equipment.base_damage > 0:
+                ui_state.message_log.add(f"  Damage: +{equipment.base_damage}", "gray")
+            if equipment.base_defense > 0:
+                ui_state.message_log.add(
+                    f"  Defense: +{equipment.base_defense}", "gray"
+                )
+
+        return ActionResult.pop_handler()
+
+    def _equip_item(self, item_id: int) -> ActionResult:
+        """Equip item from inventory"""
+        ui_state: UIResource = self.world.resource_for(UIResource)
+        drawable: Drawable = self.world.component_for(item_id, Drawable)
+
+        players: set[int] = self.world.get_entities_with(IsPlayer)
+        player: int = next(iter(players))
+
+        can, reason = can_equip(self.world, player, item_id)
+        if can:
+            previous: int | None = equip_item(self.world, player, item_id)
+            ui_state.message_log.add(f"Equipped {drawable.name}.", "white")
+            if previous is not None:
+                prev_drawable = self.world.component_for(previous, Drawable)
+                ui_state.message_log.add(f"Unequipped {prev_drawable.name}.", "gray")
+        else:
+            ui_state.message_log.add(f"Cannot equip: {reason}", "red")
 
         return ActionResult.pop_handler()

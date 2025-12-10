@@ -2,6 +2,7 @@ from camera.camera import Camera
 from camera.utils import compute_fov
 from ecs.components import (
     Drawable,
+    EquipmentSlots,
     Experience,
     Health,
     Inventory,
@@ -36,6 +37,7 @@ from ui.state import UIState
 
 def create_test_items(world: World):
     """Spawn some test items near player start"""
+
     # Health potion at (3, 1)
     potion = world.create_entity()
     world.add_component(potion, Item(item_type="consumable", base_value=25))
@@ -44,7 +46,17 @@ def create_test_items(world: World):
     world.add_component(potion, Position(3, 1))
     world.add_component(potion, OnGround())
 
-    # Sword at (2, 2)
+    # Mana potion at (3, 2)
+    mana_pot = world.create_entity()
+    world.add_component(mana_pot, Item(item_type="consumable", base_value=25))
+    world.add_component(
+        mana_pot, Consumable(effect_type="restore_mana", effect_power=15)
+    )
+    world.add_component(mana_pot, Drawable(Glyph("!", "blue"), "Mana Potion"))
+    world.add_component(mana_pot, Position(3, 2))
+    world.add_component(mana_pot, OnGround())
+
+    # Short sword at (2, 2)
     sword = world.create_entity()
     world.add_component(sword, Item(item_type="equipment", base_value=50))
     world.add_component(sword, Equipment(slot="main_hand", base_damage=5))
@@ -52,12 +64,85 @@ def create_test_items(world: World):
     world.add_component(sword, Position(2, 2))
     world.add_component(sword, OnGround())
 
+    # Dagger at (4, 3)
+    dagger = world.create_entity()
+    world.add_component(dagger, Item(item_type="equipment", base_value=30))
+    world.add_component(dagger, Equipment(slot="main_hand", base_damage=3))
+    world.add_component(dagger, Drawable(Glyph("/", "light gray"), "Dagger"))
+    world.add_component(dagger, Position(4, 3))
+    world.add_component(dagger, OnGround())
+
+    # Leather armor at (5, 2)
+    armor = world.create_entity()
+    world.add_component(armor, Item(item_type="equipment", base_value=75))
+    world.add_component(armor, Equipment(slot="torso", base_defense=3))
+    world.add_component(armor, Drawable(Glyph("[", "orange"), "Leather Armor"))
+    world.add_component(armor, Position(5, 2))
+    world.add_component(armor, OnGround())
+
+    # Iron helmet at (5, 3)
+    helmet = world.create_entity()
+    world.add_component(helmet, Item(item_type="equipment", base_value=40))
+    world.add_component(helmet, Equipment(slot="head", base_defense=2))
+    world.add_component(helmet, Drawable(Glyph("^", "light gray"), "Iron Helmet"))
+    world.add_component(helmet, Position(5, 3))
+    world.add_component(helmet, OnGround())
+
+    # Wooden shield at (6, 2)
+    shield = world.create_entity()
+    world.add_component(shield, Item(item_type="equipment", base_value=35))
+    world.add_component(shield, Equipment(slot="off_hand", base_defense=2))
+    world.add_component(shield, Drawable(Glyph(")", "orange"), "Wooden Shield"))
+    world.add_component(shield, Position(6, 2))
+    world.add_component(shield, OnGround())
+
+    # Leather boots at (6, 3)
+    boots = world.create_entity()
+    world.add_component(boots, Item(item_type="equipment", base_value=25))
+    world.add_component(boots, Equipment(slot="feet", base_defense=1))
+    world.add_component(boots, Drawable(Glyph("[", "orange"), "Leather Boots"))
+    world.add_component(boots, Position(6, 3))
+    world.add_component(boots, OnGround())
+
+    # Silver ring at (7, 2)
+    ring = world.create_entity()
+    world.add_component(ring, Item(item_type="equipment", base_value=60))
+    world.add_component(
+        ring, Equipment(slot="ring", base_defense=0)
+    )  # Will add stat bonuses later
+    world.add_component(ring, Drawable(Glyph("=", "light gray"), "Silver Ring"))
+    world.add_component(ring, Position(7, 2))
+    world.add_component(ring, OnGround())
+
+    # Gold necklace at (7, 3)
+    necklace = world.create_entity()
+    world.add_component(necklace, Item(item_type="equipment", base_value=80))
+    world.add_component(necklace, Equipment(slot="necklace", base_defense=0))
+    world.add_component(necklace, Drawable(Glyph('"', "yellow"), "Gold Necklace"))
+    world.add_component(necklace, Position(7, 3))
+    world.add_component(necklace, OnGround())
+
+    # Cloak at (8, 2)
+    cape = world.create_entity()
+    world.add_component(cape, Item(item_type="equipment", base_value=45))
+    world.add_component(cape, Equipment(slot="cape", base_defense=1))
+    world.add_component(cape, Drawable(Glyph("(", "dark green"), "Traveler's Cloak"))
+    world.add_component(cape, Position(8, 2))
+    world.add_component(cape, OnGround())
+
     # Gold coins at (1, 2)
     gold = world.create_entity()
     world.add_component(gold, Item(item_type="treasure", base_value=10))
     world.add_component(gold, Drawable(Glyph("$", "yellow"), "Gold Coins"))
     world.add_component(gold, Position(1, 2))
     world.add_component(gold, OnGround())
+
+    # Ruby at (8, 3)
+    ruby = world.create_entity()
+    world.add_component(ruby, Item(item_type="treasure", base_value=100))
+    world.add_component(ruby, Drawable(Glyph("*", "red"), "Ruby"))
+    world.add_component(ruby, Position(8, 3))
+    world.add_component(ruby, OnGround())
 
 
 g_term: GlaiveTerminal = GlaiveTerminal("Glaive", 80, 25)
@@ -92,6 +177,7 @@ world.add_component(player, Health(current_hp=30))
 world.add_component(player, Mana(current_mp=15))
 world.add_component(player, Experience())
 world.add_component(player, Inventory(max_slots=20))
+world.add_component(player, EquipmentSlots())
 
 # Create a few items laying around to test inventory, and inventory actions
 create_test_items(world)
