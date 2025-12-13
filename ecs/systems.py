@@ -15,15 +15,16 @@ from ecs.resources import (
     TerminalResource,
     UIResource,
 )
-from terminal.glyph import Glyph
 from ecs.world import World
 from items.components import OnGround
 from map.utils import render_map
+from terminal.glyph import Glyph
 
 if TYPE_CHECKING:
     from camera.camera import Camera
     from map.map import GameMap
     from terminal.terminal import GlaiveTerminal
+    from ui.look_panel import LookMode
     from ui.state import UIState
 
 
@@ -97,7 +98,7 @@ class LookCursorRenderSystem(System):
     """
 
     def update(self, world: World) -> None:
-        look_mode = world.get_resource(LookModeResource)
+        look_mode: "LookMode" = world.resource_for(LookModeResource)
         if not look_mode or not look_mode.active:
             return
 

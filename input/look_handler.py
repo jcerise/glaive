@@ -13,6 +13,9 @@ from ui.popup import PopupStack
 
 if TYPE_CHECKING:
     from ecs.world import World
+    from ui.look_panel import LookMode
+    from ui.popup import Popup
+    from ui.state import UIState
 
 
 class LookHandler(InputHandler):
@@ -33,12 +36,14 @@ class LookHandler(InputHandler):
         pos: Position = world.component_for(player, Position)
 
         # Get or create look mode resource
-        look_mode = world.get_resource(LookModeResource)
+        look_mode: "LookMode" = world.resource_for(LookModeResource)
         if look_mode:
             look_mode.cursor_x = pos.x
             look_mode.cursor_y = pos.y
         else:
-            world.add_resource(LookModeResource(cursor_x=pos.x, cursor_y=pos.y))
+            world.add_resource(
+                LookModeResource(LookMode(cursor_x=pos.x, cursor_y=pos.y))
+            )
 
         super().__init__()
 
@@ -65,20 +70,20 @@ class LookHandler(InputHandler):
 
     def on_enter(self):
         """Activate look mode and show initial info panel"""
-        look_mode = self.world.get_resource(LookModeResource)
+        look_mode: "LookMode" = self.world.resource_for(LookModeResource)
         look_mode.active = True
         self._update_info_panel()
 
     def on_exit(self):
         """Deactivate look mode and clean up info panel"""
-        look_mode = self.world.get_resource(LookModeResource)
+        look_mode: "LookMode" = self.world.resource_for(LookModeResource)
         if look_mode:
             look_mode.active = False
         self._remove_info_panel()
 
     def _move_cursor(self, dx: int, dy: int) -> ActionResult:
         """Move the look cursor, clamped to map bounds"""
-        look_mode = self.world.get_resource(LookModeResource)
+        look_mode: "LookMode" = self.world.resource_for(LookModeResource)
         game_map = self.world.resource_for(MapResource)
 
         new_x = look_mode.cursor_x + dx
@@ -107,7 +112,7 @@ class LookHandler(InputHandler):
         # Import here to avoid circular imports
         from ui.look_panel import create_look_info_panel
 
-        look_mode = self.world.get_resource(LookModeResource)
+        look_mode: "LookMode" = self.world.resource_for(LookModeResource)
         self._info_popup = create_look_info_panel(
             self.world, look_mode.cursor_x, look_mode.cursor_y
         )
@@ -121,8 +126,7 @@ class LookHandler(InputHandler):
 
     def _examine_at_cursor(self) -> ActionResult:
         """Open examine popup for entities at cursor position"""
-        look_mode = self.world.get_resource(LookModeResource)
-        ui_state = self.world.resource_for(UIResource)
+        ui_state: "UIState" = self.world.resource_for(UIResource)
 
         entities = self._get_entities_at_cursor()
 
@@ -142,13 +146,15 @@ class LookHandler(InputHandler):
 
     def _get_entities_at_cursor(self) -> list[tuple[str, int]]:
         """Get all entities at cursor position as (name, entity_id) tuples"""
-        look_mode = self.world.get_resource(LookModeResource)
+        look_mode: "LookMode" = self.world.resource_for(LookModeResource)
         cx, cy = look_mode.cursor_x, look_mode.cursor_y
 
         entities: list[tuple[str, int]] = []
 
         # Get items on ground
-        for entity_id in self.world.get_entities_with(OnGround, Position, Item, Drawable):
+        for entity_id in self.world.get_entities_with(
+            OnGround, Position, Item, Drawable
+        ):
             pos = self.world.component_for(entity_id, Position)
             if pos.x == cx and pos.y == cy:
                 drawable = self.world.component_for(entity_id, Drawable)

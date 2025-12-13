@@ -1,4 +1,4 @@
-"""Look mode info panel - displays information about what's at the cursor position."""
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from ecs.components import Drawable, IsActor, Position
@@ -10,6 +10,13 @@ from ui.popup import Popup
 if TYPE_CHECKING:
     from ecs.world import World
     from terminal.terminal import GlaiveTerminal
+
+
+@dataclass
+class LookMode:
+    active: bool = False
+    cursor_x: int = 0
+    cursor_y: int = 0
 
 
 def create_look_info_panel(world: "World", cursor_x: int, cursor_y: int) -> Popup:

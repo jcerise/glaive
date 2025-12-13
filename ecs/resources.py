@@ -5,6 +5,7 @@ if TYPE_CHECKING:
     from camera.camera import Camera
     from map.map import GameMap
     from terminal.terminal import GlaiveTerminal
+    from ui.look_panel import LookMode
     from ui.state import UIState
 
 T = TypeVar("T")
@@ -36,9 +37,5 @@ class UIResource(Resource["UIState"]):
 
 
 @dataclass
-class LookModeResource:
-    """Tracks look mode state for cursor-based map exploration"""
-
-    active: bool = False
-    cursor_x: int = 0
-    cursor_y: int = 0
+class LookModeResource(Resource["LookMode"]):
+    pass

@@ -44,6 +44,7 @@ from terminal.glyph import Glyph
 from terminal.terminal import GlaiveTerminal
 from ui.layout import LayoutManager
 from ui.log import MessageLog
+from ui.look_panel import LookMode
 from ui.popup import PopupStack
 from ui.state import UIState
 
@@ -115,11 +116,14 @@ play_area = layout.get_play_area_inner()
 camera: Camera = Camera(play_area.width, play_area.height, 160, 50)
 camera.set_screen_offset(play_area.x, play_area.y)
 
+# Instantiate a look mode resource
+look_mode: LookMode = LookMode()
+
 world: World = World()
 world.add_resource(TerminalResource(g_term))
 world.add_resource(CameraResource(camera))
 world.add_resource(UIResource(ui_state))
-world.add_resource(LookModeResource())
+world.add_resource(LookModeResource(look_mode))
 
 initial_handler: InputHandler = MainGameHandler(world)
 input_manager: InputManager = InputManager(initial_handler)
