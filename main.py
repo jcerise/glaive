@@ -1,6 +1,7 @@
 from camera.camera import Camera
 from camera.utils import compute_fov
 from ecs.components import (
+    Description,
     Drawable,
     EquipmentSlots,
     Experience,
@@ -13,8 +14,15 @@ from ecs.components import (
     Stats,
     TurnConsumed,
 )
-from ecs.resources import CameraResource, MapResource, TerminalResource, UIResource
+from ecs.resources import (
+    CameraResource,
+    LookModeResource,
+    MapResource,
+    TerminalResource,
+    UIResource,
+)
 from ecs.systems import (
+    LookCursorRenderSystem,
     MapRenderSystem,
     MovementSystem,
     RenderSystem,
@@ -111,6 +119,7 @@ world: World = World()
 world.add_resource(TerminalResource(g_term))
 world.add_resource(CameraResource(camera))
 world.add_resource(UIResource(ui_state))
+world.add_resource(LookModeResource())
 
 initial_handler: InputHandler = MainGameHandler(world)
 input_manager: InputManager = InputManager(initial_handler)
@@ -120,6 +129,7 @@ world.add_component(player, IsPlayer())
 world.add_component(player, IsActor())
 world.add_component(player, Position(1, 1))
 world.add_component(player, Drawable(Glyph("@", "white"), "Player"))
+world.add_component(player, Description("Yourself, a brave adventurer."))
 world.add_component(player, Stats())  # Default stats (all 10s)
 world.add_component(player, Health(current_hp=30))
 world.add_component(player, Mana(current_mp=15))
@@ -136,6 +146,7 @@ camera.update(1, 1)
 system_scheduler: SystemScheduler = SystemScheduler()
 system_scheduler.add_system(MapRenderSystem(), "render")
 system_scheduler.add_system(RenderSystem(), "render")
+system_scheduler.add_system(LookCursorRenderSystem(), "render")
 system_scheduler.add_system(UIRenderSystem(), "render")
 system_scheduler.add_system(MovementSystem(), "action")
 
