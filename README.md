@@ -20,6 +20,7 @@ Currently implemented features:
 - Items, inventory
 - Equipment
 - Item rarities with affixes and prefixes
+- Look/Examine system with complete entity descriptions
 
 Upcoming features:
 - Actual gameplay (proper map generation, enemies, combat, enemy pathfinding)
