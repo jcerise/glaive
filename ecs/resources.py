@@ -33,3 +33,12 @@ class CameraResource(Resource["Camera"]):
 @dataclass
 class UIResource(Resource["UIState"]):
     pass
+
+
+@dataclass
+class LookModeResource:
+    """Tracks look mode state for cursor-based map exploration"""
+
+    active: bool = False
+    cursor_x: int = 0
+    cursor_y: int = 0

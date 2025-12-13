@@ -36,6 +36,13 @@ class Drawable(Component):
 
 
 @dataclass
+class Description(Component):
+    """Base narrative description of an entity."""
+
+    text: str
+
+
+@dataclass
 class MoveIntent(Component):
     dx: int
     dy: int

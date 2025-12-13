@@ -1,9 +1,10 @@
 from typing import TYPE_CHECKING
 
-from ecs.components import Drawable
+from ecs.components import Drawable, IsActor
 from items.affixes import ItemAffixes
 from items.components import Consumable, Equipment, Item, Treasure
 from items.item_types import RARITY_COLORS
+from ui.descriptions import generate_actor_description
 from ui.popup import Popup
 
 if TYPE_CHECKING:
@@ -11,7 +12,103 @@ if TYPE_CHECKING:
     from terminal.terminal import GlaiveTerminal
 
 
-def create_examine_popup(world: "World", item_id: int) -> Popup:
+def create_examine_popup(world: "World", entity_id: int) -> Popup:
+    """Create appropriate popup based on entity type."""
+    # Check if it's an item
+    item = world.get_component(entity_id, Item)
+    if item:
+        return _create_item_popup(world, entity_id)
+
+    # Check if it's an actor
+    is_actor = world.get_component(entity_id, IsActor)
+    if is_actor:
+        return _create_actor_popup(world, entity_id)
+
+    # Fallback - simple name popup
+    drawable = world.get_component(entity_id, Drawable)
+    name = drawable.name if drawable else "Unknown"
+    return _create_simple_popup(name)
+
+
+def _create_simple_popup(name: str) -> Popup:
+    """Create a simple popup with just a name."""
+    popup_width = max(len(name) + 4, 16)
+
+    def render_content(
+        popup: Popup, terminal: "GlaiveTerminal", world: "World", layer: int
+    ):
+        inner = popup.inner_rect
+        if not inner:
+            return
+        terminal.draw_string_at_layer(inner.x, inner.y, name, "white", layer)
+
+    return Popup(
+        width=popup_width,
+        height=3,
+        title="Examine",
+        content_renderer=render_content,
+    )
+
+
+def _create_actor_popup(world: "World", entity_id: int) -> Popup:
+    """Create a narrative description popup for an actor."""
+    drawable = world.component_for(entity_id, Drawable)
+    description = generate_actor_description(world, entity_id)
+
+    # Word wrap the description to fit in popup
+    max_line_width = 40
+    lines = _word_wrap(description, max_line_width)
+
+    # Calculate dimensions
+    max_content_width = max(len(line) for line in lines) if lines else 10
+    popup_width = max(max_content_width + 4, 20)
+    popup_height = len(lines) + 2  # +2 for border
+
+    def render_content(
+        popup: Popup, terminal: "GlaiveTerminal", world: "World", layer: int
+    ):
+        inner = popup.inner_rect
+        if not inner:
+            return
+
+        y = inner.y
+        for line in lines:
+            terminal.draw_string_at_layer(inner.x, y, line, "white", layer)
+            y += 1
+
+    return Popup(
+        width=popup_width,
+        height=popup_height,
+        title=drawable.name,
+        content_renderer=render_content,
+    )
+
+
+def _word_wrap(text: str, max_width: int) -> list[str]:
+    """Wrap text to fit within max_width."""
+    words = text.split()
+    lines: list[str] = []
+    current_line: list[str] = []
+    current_length = 0
+
+    for word in words:
+        word_len = len(word)
+        if current_length + word_len + (1 if current_line else 0) <= max_width:
+            current_line.append(word)
+            current_length += word_len + (1 if len(current_line) > 1 else 0)
+        else:
+            if current_line:
+                lines.append(" ".join(current_line))
+            current_line = [word]
+            current_length = word_len
+
+    if current_line:
+        lines.append(" ".join(current_line))
+
+    return lines if lines else [""]
+
+
+def _create_item_popup(world: "World", item_id: int) -> Popup:
     """Create a formatted popup for examining an item in detail"""
 
     drawable: Drawable = world.component_for(item_id, Drawable)

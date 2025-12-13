@@ -8,7 +8,14 @@ from ecs.components import (
     Position,
     TurnConsumed,
 )
-from ecs.resources import CameraResource, MapResource, TerminalResource, UIResource
+from ecs.resources import (
+    CameraResource,
+    LookModeResource,
+    MapResource,
+    TerminalResource,
+    UIResource,
+)
+from terminal.glyph import Glyph
 from ecs.world import World
 from items.components import OnGround
 from map.utils import render_map
@@ -81,6 +88,33 @@ class RenderSystem(System):
                 )
                 # Draw entities on layer 1 of the terminal (above map tiles on layer 0)
                 terminal.draw_at_layer(screen_x, screen_y, drawable_component.glyph, 1)
+
+
+class LookCursorRenderSystem(System):
+    """
+    Renders the look mode cursor ('X') when look mode is active.
+    Should run after RenderSystem, before UIRenderSystem.
+    """
+
+    def update(self, world: World) -> None:
+        look_mode = world.get_resource(LookModeResource)
+        if not look_mode or not look_mode.active:
+            return
+
+        terminal: "GlaiveTerminal" = world.resource_for(TerminalResource)
+        camera: "Camera" = world.resource_for(CameraResource)
+
+        # Check if cursor is visible on screen
+        if not camera.is_visible(look_mode.cursor_x, look_mode.cursor_y):
+            return
+
+        # Transform to screen coordinates
+        screen_x, screen_y = camera.world_to_screen(
+            look_mode.cursor_x, look_mode.cursor_y
+        )
+
+        # Draw 'X' cursor on layer 2 (above entities on layer 1)
+        terminal.draw_at_layer(screen_x, screen_y, Glyph("X", "yellow"), 2)
 
 
 class UIRenderSystem(System):
