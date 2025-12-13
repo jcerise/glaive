@@ -7,7 +7,6 @@ from input.equipment_handler import EquipmentHandler
 from input.input import ActionResult, InputHandler
 from input.inventory_handler import InventoryHandler
 from input.look_handler import LookHandler
-from items.components import Equipment
 from items.inventory import can_pickup, get_items_at_position, pickup_item
 from ui.menu import Menu, MenuHandler, Popup, create_menu_popup
 
@@ -20,19 +19,19 @@ class MainGameHandler(InputHandler):
     def load_keybinds(self):
         self.keybinds = {
             # Movement - arrow keys
-            terminal.TK_UP: self.move_north,
-            terminal.TK_DOWN: self.move_south,
-            terminal.TK_LEFT: self.move_west,
-            terminal.TK_RIGHT: self.move_east,
+            terminal.TK_UP: lambda: self._move(0, -1),
+            terminal.TK_DOWN: lambda: self._move(0, 1),
+            terminal.TK_LEFT: lambda: self._move(-1, 0),
+            terminal.TK_RIGHT: lambda: self._move(1, 0),
             # Movement - vim keys
-            terminal.TK_K: self.move_north,
-            terminal.TK_J: self.move_south,
-            terminal.TK_H: self.move_west,
-            terminal.TK_L: self.move_east,
-            terminal.TK_Y: self.move_northwest,
-            terminal.TK_U: self.move_northeast,
-            terminal.TK_B: self.move_southwest,
-            terminal.TK_N: self.move_southeast,
+            terminal.TK_K: lambda: self._move(0, -1),
+            terminal.TK_J: lambda: self._move(0, 1),
+            terminal.TK_H: lambda: self._move(-1, 0),
+            terminal.TK_L: lambda: self._move(1, 0),
+            terminal.TK_Y: lambda: self._move(-1, -1),
+            terminal.TK_U: lambda: self._move(1, -1),
+            terminal.TK_B: lambda: self._move(-1, 1),
+            terminal.TK_N: lambda: self._move(1, 1),
             # TODO: Actions
             terminal.TK_G: self.pickup_item,
             terminal.TK_I: self.open_inventory,
@@ -46,30 +45,6 @@ class MainGameHandler(InputHandler):
             # '.': self.wait,
             # ',': self.pickup_item,  # Alternative
         }
-
-    def move_north(self) -> ActionResult:
-        return self._move(0, -1)
-
-    def move_south(self) -> ActionResult:
-        return self._move(0, 1)
-
-    def move_west(self) -> ActionResult:
-        return self._move(-1, 0)
-
-    def move_east(self) -> ActionResult:
-        return self._move(1, 0)
-
-    def move_northwest(self) -> ActionResult:
-        return self._move(-1, -1)
-
-    def move_northeast(self) -> ActionResult:
-        return self._move(1, -1)
-
-    def move_southwest(self) -> ActionResult:
-        return self._move(-1, 1)
-
-    def move_southeast(self) -> ActionResult:
-        return self._move(1, 1)
 
     def _move(self, dx: int, dy: int) -> ActionResult:
         players = self.world.get_entities_with(IsPlayer)
