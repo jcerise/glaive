@@ -18,6 +18,7 @@ from ecs.resources import (
     CameraResource,
     LookModeResource,
     MapResource,
+    TargetModeResource,
     TerminalResource,
     UIResource,
 )
@@ -27,10 +28,11 @@ from ecs.systems import (
     MovementSystem,
     RenderSystem,
     SystemScheduler,
+    TargetCursorRenderSystem,
     UIRenderSystem,
 )
-from effects.systems import EffectTickSystem
 from ecs.world import World
+from effects.systems import EffectTickSystem
 from input.handlers import MainGameHandler
 from input.input import InputHandler, InputManager
 from items.factory import (
@@ -48,6 +50,7 @@ from ui.log import MessageLog
 from ui.look_panel import LookMode
 from ui.popup import PopupStack
 from ui.state import UIState
+from ui.target_panel import TargetMode
 
 
 def create_test_items(world: World):
@@ -120,11 +123,15 @@ camera.set_screen_offset(play_area.x, play_area.y)
 # Instantiate a look mode resource
 look_mode: LookMode = LookMode()
 
+# Instantiate a target mode resource
+target_mode: TargetMode = TargetMode()
+
 world: World = World()
 world.add_resource(TerminalResource(g_term))
 world.add_resource(CameraResource(camera))
 world.add_resource(UIResource(ui_state))
 world.add_resource(LookModeResource(look_mode))
+world.add_resource(TargetModeResource(target_mode))
 
 initial_handler: InputHandler = MainGameHandler(world)
 input_manager: InputManager = InputManager(initial_handler)
@@ -152,6 +159,7 @@ system_scheduler: SystemScheduler = SystemScheduler()
 system_scheduler.add_system(MapRenderSystem(), "render")
 system_scheduler.add_system(RenderSystem(), "render")
 system_scheduler.add_system(LookCursorRenderSystem(), "render")
+system_scheduler.add_system(TargetCursorRenderSystem(), "render")
 system_scheduler.add_system(UIRenderSystem(), "render")
 system_scheduler.add_system(MovementSystem(), "action")
 system_scheduler.add_system(EffectTickSystem(), "resolution")
