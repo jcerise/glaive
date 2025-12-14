@@ -5,7 +5,8 @@ from ecs.resources import UIResource
 from input.examine_handler import ExamineHandler
 from input.input import ActionResult, InputHandler
 from items.affixes import ItemAffixes
-from items.components import Equipment, Item
+from items.components import Consumable, Equipment, Item
+from items.consumable_actions import consume_item
 from items.equipment import can_equip, equip_item
 from items.inventory import drop_item, get_inventory_items
 from items.item_types import RARITY_COLORS
@@ -90,6 +91,11 @@ class InventoryHandler(MenuHandler):
 
         action_menu: Menu = Menu(title=drawable.name)
 
+        # Add "Use" option if item is consumable
+        consumable = self.world.get_component(item_id, Consumable)
+        if consumable:
+            action_menu.add_item("Use", lambda: self._use_item(item_id))
+
         # Add "Equip" option if item is equipment
         equipment = self.world.get_component(item_id, Equipment)
         if equipment:
@@ -150,4 +156,20 @@ class InventoryHandler(MenuHandler):
         else:
             ui_state.message_log.add(f"Cannot equip: {reason}", "red")
 
+        return ActionResult.pop_handler()
+
+    def _use_item(self, item_id: int) -> ActionResult:
+        """Use a consumable item on self"""
+        ui_state: UIResource = self.world.resource_for(UIResource)
+
+        players: set[int] = self.world.get_entities_with(IsPlayer)
+        player: int = next(iter(players))
+
+        success, message = consume_item(self.world, player, item_id)
+        color = "white" if success else "red"
+        ui_state.message_log.add(message, color)
+
+        if success:
+            # Using an item consumes a turn - close menu and pass turn
+            return ActionResult.turn_and_pop()
         return ActionResult.pop_handler()

@@ -18,8 +18,8 @@ Currently implemented features:
 - FOV
 - User Interface
 - Items, inventory
-- Equipment
-- Item rarities with affixes and prefixes
+  - Equipment
+  - Item rarities with affixes and prefixes
 - Look/Examine system with complete entity descriptions
 
 Upcoming features:

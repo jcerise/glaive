@@ -29,6 +29,7 @@ from ecs.systems import (
     SystemScheduler,
     UIRenderSystem,
 )
+from effects.systems import EffectTickSystem
 from ecs.world import World
 from input.handlers import MainGameHandler
 from input.input import InputHandler, InputManager
@@ -153,6 +154,7 @@ system_scheduler.add_system(RenderSystem(), "render")
 system_scheduler.add_system(LookCursorRenderSystem(), "render")
 system_scheduler.add_system(UIRenderSystem(), "render")
 system_scheduler.add_system(MovementSystem(), "action")
+system_scheduler.add_system(EffectTickSystem(), "resolution")
 
 # Create a basic Arena map, that takes up the terminal (no camera yet)
 arena_generator: ArenaGenerator = ArenaGenerator(160, 50)
