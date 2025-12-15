@@ -12,10 +12,12 @@ from ecs.resources import (
     CameraResource,
     LookModeResource,
     MapResource,
+    TargetModeResource,
     TerminalResource,
     UIResource,
 )
 from ecs.world import World
+from effects.components import GroundPool
 from items.components import OnGround
 from map.utils import render_map
 from terminal.glyph import Glyph
@@ -26,6 +28,7 @@ if TYPE_CHECKING:
     from terminal.terminal import GlaiveTerminal
     from ui.look_panel import LookMode
     from ui.state import UIState
+    from ui.target_panel import TargetMode
 
 
 class System:
@@ -118,6 +121,129 @@ class LookCursorRenderSystem(System):
         terminal.draw_at_layer(screen_x, screen_y, Glyph("X", "yellow"), 2)
 
 
+class TargetCursorRenderSystem(System):
+    """
+    Renders the targeting cursor and range indicator when target mode is active.
+    Shows valid range, path preview, and AoE radius.
+    Should run after RenderSystem, before UIRenderSystem.
+    """
+
+    def update(self, world: World) -> None:
+        target_mode: "TargetMode" = world.resource_for(TargetModeResource)
+        if not target_mode.active:
+            return
+
+        terminal: "GlaiveTerminal" = world.resource_for(TerminalResource)
+        camera: "Camera" = world.resource_for(CameraResource)
+        game_map: "GameMap" = world.resource_for(MapResource)
+
+        # Import here to avoid circular imports
+        from effects.targeting import get_line, has_line_of_sight, is_in_range
+
+        # Draw range indicator (subtle highlight on valid tiles)
+        for dy in range(-target_mode.max_range, target_mode.max_range + 1):
+            for dx in range(-target_mode.max_range, target_mode.max_range + 1):
+                tx = target_mode.origin_x + dx
+                ty = target_mode.origin_y + dy
+
+                if not game_map.in_bounds(tx, ty):
+                    continue
+                if not camera.is_visible(tx, ty):
+                    continue
+
+                # Skip the origin tile
+                if tx == target_mode.origin_x and ty == target_mode.origin_y:
+                    continue
+
+                screen_x, screen_y = camera.world_to_screen(tx, ty)
+
+                in_range = is_in_range(
+                    target_mode.origin_x,
+                    target_mode.origin_y,
+                    tx,
+                    ty,
+                    target_mode.max_range,
+                )
+                if in_range:
+                    # Check line of sight
+                    has_los = has_line_of_sight(
+                        target_mode.origin_x,
+                        target_mode.origin_y,
+                        tx,
+                        ty,
+                        game_map,
+                    )
+                    # In range with LoS - green dot, blocked - dark gray dot
+                    color = "dark green" if has_los else "darker gray"
+                    terminal.draw_at_layer(screen_x, screen_y, Glyph(".", color), 2)
+
+        # Draw path preview if enabled
+        if target_mode.show_path:
+            path = get_line(
+                target_mode.origin_x,
+                target_mode.origin_y,
+                target_mode.cursor_x,
+                target_mode.cursor_y,
+            )
+            # Skip origin and cursor, draw path between
+            for px, py in path[1:-1]:
+                if camera.is_visible(px, py):
+                    screen_x, screen_y = camera.world_to_screen(px, py)
+                    terminal.draw_at_layer(screen_x, screen_y, Glyph("*", "yellow"), 2)
+
+        # Draw AoE radius preview if applicable
+        if target_mode.radius > 0:
+            cursor_in_range = is_in_range(
+                target_mode.origin_x,
+                target_mode.origin_y,
+                target_mode.cursor_x,
+                target_mode.cursor_y,
+                target_mode.max_range,
+            )
+            if cursor_in_range:
+                for dy in range(-target_mode.radius, target_mode.radius + 1):
+                    for dx in range(-target_mode.radius, target_mode.radius + 1):
+                        tx = target_mode.cursor_x + dx
+                        ty = target_mode.cursor_y + dy
+
+                        if not game_map.in_bounds(tx, ty):
+                            continue
+
+                        # Use Chebyshev distance for radius
+                        dist = max(abs(dx), abs(dy))
+                        if dist <= target_mode.radius and dist > 0:
+                            if camera.is_visible(tx, ty):
+                                screen_x, screen_y = camera.world_to_screen(tx, ty)
+                                terminal.draw_at_layer(
+                                    screen_x, screen_y, Glyph("*", "orange"), 2
+                                )
+
+        # Draw cursor last (on top of everything)
+        if camera.is_visible(target_mode.cursor_x, target_mode.cursor_y):
+            screen_x, screen_y = camera.world_to_screen(
+                target_mode.cursor_x, target_mode.cursor_y
+            )
+
+            # Color based on validity (range and line of sight)
+            cursor_in_range = is_in_range(
+                target_mode.origin_x,
+                target_mode.origin_y,
+                target_mode.cursor_x,
+                target_mode.cursor_y,
+                target_mode.max_range,
+            )
+            cursor_has_los = has_line_of_sight(
+                target_mode.origin_x,
+                target_mode.origin_y,
+                target_mode.cursor_x,
+                target_mode.cursor_y,
+                game_map,
+            )
+            cursor_valid = cursor_in_range and cursor_has_los
+            cursor_color = "green" if cursor_valid else "red"
+            terminal.draw_at_layer(screen_x, screen_y, Glyph("X", cursor_color), 2)
+
+
 class UIRenderSystem(System):
     """
     Renders the UI layer: panels and popups.
@@ -176,3 +302,23 @@ class MapRenderSystem(System):
         camera: "Camera" = world.resource_for(CameraResource)
 
         render_map(game_map, terminal, world, camera)
+
+
+class PoolRenderSystem(System):
+    """
+    Renders ground pools (from thrown potions, etc.)
+    Renders on layer 1, same as items but before them.
+    """
+
+    def update(self, world: World) -> None:
+        terminal: "GlaiveTerminal" = world.resource_for(TerminalResource)
+        camera: "Camera" = world.resource_for(CameraResource)
+        game_map: "GameMap" = world.resource_for(MapResource)
+
+        for entity in world.get_entities_with(Position, Drawable, GroundPool):
+            pos = world.component_for(entity, Position)
+            drawable = world.component_for(entity, Drawable)
+
+            if camera.is_visible(pos.x, pos.y) and game_map.is_visible(pos.x, pos.y):
+                screen_x, screen_y = camera.world_to_screen(pos.x, pos.y)
+                terminal.draw_at_layer(screen_x, screen_y, drawable.glyph, 1)

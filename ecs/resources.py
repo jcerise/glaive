@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from terminal.terminal import GlaiveTerminal
     from ui.look_panel import LookMode
     from ui.state import UIState
+    from ui.target_panel import TargetMode
 
 T = TypeVar("T")
 
@@ -38,4 +39,9 @@ class UIResource(Resource["UIState"]):
 
 @dataclass
 class LookModeResource(Resource["LookMode"]):
+    pass
+
+
+@dataclass
+class TargetModeResource(Resource["TargetMode"]):
     pass

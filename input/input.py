@@ -6,11 +6,12 @@ class ActionResult:
     """
 
     def __init__(
-        self, consumed_turn: bool = False, push_handler=None, pop: bool = False
+        self, consumed_turn: bool = False, push_handler=None, pop: bool = False, pop_count: int = 0
     ):
         self.consumed_turn = consumed_turn
         self.push_handler = push_handler
         self.pop = pop
+        self.pop_count = pop_count  # Pop multiple handlers (0 = use pop flag, >0 = pop this many)
 
     @staticmethod
     def no_op():
@@ -35,6 +36,16 @@ class ActionResult:
     @staticmethod
     def turn_and_pop():
         return ActionResult(consumed_turn=True, pop=True)
+
+    @staticmethod
+    def pop_multiple(count: int):
+        """Pop multiple handlers from the stack"""
+        return ActionResult(pop_count=count)
+
+    @staticmethod
+    def turn_and_pop_multiple(count: int):
+        """Consume turn and pop multiple handlers"""
+        return ActionResult(consumed_turn=True, pop_count=count)
 
 
 class InputHandler:
@@ -96,7 +107,12 @@ class InputManager:
     def process_key(self, key) -> bool:
         result: ActionResult = self.current_handler().handle_key(key)
 
-        if result.pop:
+        # Handle popping - either single pop or multiple
+        if result.pop_count > 0:
+            for _ in range(result.pop_count):
+                if not self.pop_handler():
+                    break  # Stop if we hit the bottom of the stack
+        elif result.pop:
             self.pop_handler()
 
         if result.push_handler:
