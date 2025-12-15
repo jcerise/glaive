@@ -45,7 +45,6 @@ ConsumableType = Literal[
 
 # Template registry
 CONSUMABLE_TEMPLATES: dict[str, ConsumableTemplate] = {
-    # === POTIONS ===
     # Potions use '!' glyph and create pools when thrown
     "health_potion": ConsumableTemplate(
         name="Health Potion",
@@ -119,7 +118,6 @@ CONSUMABLE_TEMPLATES: dict[str, ConsumableTemplate] = {
         creates_pool=True,
         pool_name="poisonous liquid",
     ),
-    # === SCROLLS ===
     # Scrolls use '?' glyph and typically don't create pools (unless specified)
     "scroll_of_fireball": ConsumableTemplate(
         name="Scroll of Fireball",
