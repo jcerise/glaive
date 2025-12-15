@@ -100,16 +100,24 @@ def create_consumable(
     x: int,
     y: int,
     uses: int = 1,
+    creates_pool: bool = False,
 ) -> int:
     """
     Create a consumable item entity.
+
+    Args:
+        creates_pool: If True, this consumable creates a ground pool when thrown
+                     (e.g., potions and vials)
     """
     entity = world.create_entity()
     world.add_component(entity, Item(item_type="consumable", base_value=base_value))
     world.add_component(
         entity,
         Consumable(
-            effect_type=effect_type, effect_power=effect_power, uses_remaining=uses
+            effect_type=effect_type,
+            effect_power=effect_power,
+            uses_remaining=uses,
+            creates_pool=creates_pool,
         ),
     )
     world.add_component(entity, Drawable(Glyph(glyph_char, glyph_color), name))
@@ -117,6 +125,37 @@ def create_consumable(
     world.add_component(entity, OnGround())
 
     return entity
+
+
+def create_potion(
+    world: "World",
+    name: str,
+    glyph_color: str,
+    effect_type: str,
+    effect_power: int,
+    base_value: int,
+    x: int,
+    y: int,
+) -> int:
+    """
+    Create a potion item entity.
+
+    Potions are liquid consumables that create ground pools when thrown.
+    Uses '!' glyph by convention.
+    """
+    return create_consumable(
+        world=world,
+        name=name,
+        glyph_char="!",
+        glyph_color=glyph_color,
+        effect_type=effect_type,
+        effect_power=effect_power,
+        base_value=base_value,
+        x=x,
+        y=y,
+        uses=1,
+        creates_pool=True,
+    )
 
 
 def create_treasure(

@@ -26,13 +26,14 @@ from ecs.systems import (
     LookCursorRenderSystem,
     MapRenderSystem,
     MovementSystem,
+    PoolRenderSystem,
     RenderSystem,
     SystemScheduler,
     TargetCursorRenderSystem,
     UIRenderSystem,
 )
 from ecs.world import World
-from effects.systems import EffectTickSystem
+from effects.systems import EffectTickSystem, GroundPoolSystem
 from input.handlers import MainGameHandler
 from input.input import InputHandler, InputManager
 from items.factory import (
@@ -56,8 +57,13 @@ from ui.target_panel import TargetMode
 def create_test_items(world: World):
     """Spawn test items with various rarities near player start"""
 
-    create_consumable(world, "Health Potion", "!", "red", "heal", 20, 25, 3, 1)
-    create_consumable(world, "Mana Potion", "!", "blue", "restore_mana", 15, 25, 3, 2)
+    # Potions create ground pools when thrown
+    create_consumable(
+        world, "Health Potion", "!", "red", "heal", 20, 25, 3, 1, creates_pool=True
+    )
+    create_consumable(
+        world, "Mana Potion", "!", "blue", "restore_mana", 15, 25, 3, 2, creates_pool=True
+    )
 
     # Common sword - no affixes (white)
     create_weapon(
@@ -157,12 +163,14 @@ camera.update(1, 1)
 
 system_scheduler: SystemScheduler = SystemScheduler()
 system_scheduler.add_system(MapRenderSystem(), "render")
+system_scheduler.add_system(PoolRenderSystem(), "render")
 system_scheduler.add_system(RenderSystem(), "render")
 system_scheduler.add_system(LookCursorRenderSystem(), "render")
 system_scheduler.add_system(TargetCursorRenderSystem(), "render")
 system_scheduler.add_system(UIRenderSystem(), "render")
 system_scheduler.add_system(MovementSystem(), "action")
 system_scheduler.add_system(EffectTickSystem(), "resolution")
+system_scheduler.add_system(GroundPoolSystem(), "resolution")
 
 # Create a basic Arena map, that takes up the terminal (no camera yet)
 arena_generator: ArenaGenerator = ArenaGenerator(160, 50)

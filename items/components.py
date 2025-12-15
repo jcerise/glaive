@@ -18,6 +18,7 @@ class Consumable(Component):
     effect_type: str
     effect_power: int = 0
     uses_remaining: int = 1
+    creates_pool: bool = False  # If True, creates ground pool when thrown (potions/vials)
 
 
 @dataclass

@@ -8,6 +8,7 @@ from items.affixes import ItemAffixes
 from items.components import Consumable, Equipment, Item
 from items.consumable_actions import consume_item
 from items.equipment import can_equip, equip_item
+from items.throw_actions import get_throw_range, throw_item
 from items.inventory import drop_item, get_inventory_items
 from items.item_types import RARITY_COLORS
 from ui.examine import create_examine_popup
@@ -95,6 +96,7 @@ class InventoryHandler(MenuHandler):
         consumable = self.world.get_component(item_id, Consumable)
         if consumable:
             action_menu.add_item("Use", lambda: self._use_item(item_id))
+            action_menu.add_item("Throw", lambda: self._start_throw(item_id))
 
         # Add "Equip" option if item is equipment
         equipment = self.world.get_component(item_id, Equipment)
@@ -173,3 +175,41 @@ class InventoryHandler(MenuHandler):
             # Using an item consumes a turn - close menu and pass turn
             return ActionResult.turn_and_pop()
         return ActionResult.pop_handler()
+
+    def _start_throw(self, item_id: int) -> ActionResult:
+        """Open targeting UI for throwing an item"""
+        from input.target_handler import TargetHandler
+
+        ui_state: UIResource = self.world.resource_for(UIResource)
+        drawable: Drawable = self.world.component_for(item_id, Drawable)
+
+        players: set[int] = self.world.get_entities_with(IsPlayer)
+        player: int = next(iter(players))
+
+        max_range = get_throw_range(self.world, player)
+
+        def on_confirm(target_x: int, target_y: int) -> ActionResult:
+            success, message = throw_item(self.world, player, item_id, target_x, target_y)
+            color = "white" if success else "red"
+            ui_state.message_log.add(message, color)
+
+            if success:
+                # Throwing consumes a turn
+                # Pop 3 handlers: TargetHandler -> MenuHandler -> InventoryHandler
+                return ActionResult.turn_and_pop_multiple(3)
+            # On failure, just pop back to action menu
+            return ActionResult.pop_handler()
+
+        handler = TargetHandler(
+            self.world,
+            ui_state.popup_stack,
+            max_range=max_range,
+            show_path=True,
+            on_confirm=on_confirm,
+            prompt=f"Throw {drawable.name} where?",
+        )
+
+        # Close the action menu and inventory, push target handler
+        # We need to pop twice (action menu + inventory) then push target
+        ui_state.popup_stack.clear()
+        return ActionResult.push(handler)

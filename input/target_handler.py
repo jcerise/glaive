@@ -6,7 +6,7 @@ from bearlibterminal import terminal as blt
 
 from ecs.components import IsPlayer, Position
 from ecs.resources import MapResource, TargetModeResource, UIResource
-from effects.targeting import is_in_range
+from effects.targeting import has_line_of_sight, is_in_range
 from input.input import ActionResult, InputHandler
 from ui.popup import PopupStack
 
@@ -64,32 +64,15 @@ class TargetHandler(InputHandler):
         self.origin_x = pos.x
         self.origin_y = pos.y
 
-        # Initialize or update target mode resource
-        target_mode: Optional["TargetMode"] = world.get_resource(TargetModeResource)
-        if target_mode:
-            target_mode.cursor_x = pos.x
-            target_mode.cursor_y = pos.y
-            target_mode.origin_x = pos.x
-            target_mode.origin_y = pos.y
-            target_mode.max_range = max_range
-            target_mode.radius = radius
-            target_mode.show_path = show_path
-        else:
-            from ui.target_panel import TargetMode
-
-            world.add_resource(
-                TargetModeResource(
-                    TargetMode(
-                        cursor_x=pos.x,
-                        cursor_y=pos.y,
-                        origin_x=pos.x,
-                        origin_y=pos.y,
-                        max_range=max_range,
-                        radius=radius,
-                        show_path=show_path,
-                    )
-                )
-            )
+        # Update target mode resource (always exists, initialized in main.py)
+        target_mode: "TargetMode" = world.resource_for(TargetModeResource)
+        target_mode.cursor_x = pos.x
+        target_mode.cursor_y = pos.y
+        target_mode.origin_x = pos.x
+        target_mode.origin_y = pos.y
+        target_mode.max_range = max_range
+        target_mode.radius = radius
+        target_mode.show_path = show_path
 
         super().__init__()
 
@@ -127,11 +110,8 @@ class TargetHandler(InputHandler):
 
     def on_exit(self):
         """Deactivate target mode"""
-        target_mode: Optional["TargetMode"] = self.world.get_resource(
-            TargetModeResource
-        )
-        if target_mode:
-            target_mode.active = False
+        target_mode: "TargetMode" = self.world.resource_for(TargetModeResource)
+        target_mode.active = False
 
     def _move_cursor(self, dx: int, dy: int) -> ActionResult:
         """Move the targeting cursor, clamped to map bounds"""
@@ -154,6 +134,7 @@ class TargetHandler(InputHandler):
         """Confirm the current target location"""
         target_mode: "TargetMode" = self.world.resource_for(TargetModeResource)
         ui_state = self.world.resource_for(UIResource)
+        game_map = self.world.resource_for(MapResource)
 
         # Check if target is in range
         if not is_in_range(
@@ -164,6 +145,17 @@ class TargetHandler(InputHandler):
             self.max_range,
         ):
             ui_state.message_log.add("Target is out of range!", "red")
+            return ActionResult.no_op()
+
+        # Check line of sight (walls block throws)
+        if not has_line_of_sight(
+            self.origin_x,
+            self.origin_y,
+            target_mode.cursor_x,
+            target_mode.cursor_y,
+            game_map,
+        ):
+            ui_state.message_log.add("Your path is blocked!", "red")
             return ActionResult.no_op()
 
         # Deactivate targeting before callback
@@ -182,5 +174,8 @@ class TargetHandler(InputHandler):
         return ActionResult.pop_handler()
 
     def is_valid_target(self, x: int, y: int) -> bool:
-        """Check if a tile is a valid target (in range)"""
-        return is_in_range(self.origin_x, self.origin_y, x, y, self.max_range)
+        """Check if a tile is a valid target (in range and has line of sight)"""
+        if not is_in_range(self.origin_x, self.origin_y, x, y, self.max_range):
+            return False
+        game_map = self.world.resource_for(MapResource)
+        return has_line_of_sight(self.origin_x, self.origin_y, x, y, game_map)

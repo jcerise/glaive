@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 
 from ecs.components import Component
-from effects.effect_types import Effect
+from effects.effect_types import Effect, EffectType
 
 
 @dataclass
@@ -52,3 +52,19 @@ class ActiveEffects(Component):
     def get_effects_by_type(self, effect_type: str) -> list[Effect]:
         """Get all active effects of a given type."""
         return [e for e in self.effects if e.effect_type.value == effect_type]
+
+
+@dataclass
+class GroundPool(Component):
+    """
+    A persistent ground effect at a tile location.
+
+    Created when liquid consumables (potions/vials) are thrown and shatter.
+    Affects any entity that steps on or stands on the tile.
+    """
+
+    effect_type: EffectType
+    power: int
+    duration: int  # Turns remaining before pool dissipates
+    name: str  # For messages: "pool of healing liquid"
+    source_entity: int | None = None  # Who created this pool
