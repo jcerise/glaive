@@ -2,10 +2,12 @@
 
 from typing import TYPE_CHECKING
 
-from ecs.components import Drawable, Position, Stats
+from ecs.components import Drawable, Health, IsActor, Position, Stats
+from effects.apply import apply_effect_to_entity
 from effects.effect_types import EffectType
 from effects.pools import create_pool
 from items.components import Consumable, InInventory, Item, OnGround
+from items.consumable_actions import create_effect_from_consumable
 
 if TYPE_CHECKING:
     from ecs.world import World
@@ -39,7 +41,8 @@ def throw_item(
 
     Behavior:
     - Removes item from thrower's inventory
-    - For potions: will break and create ground pool (Phase 5)
+    - If consumable hits an entity: applies effect directly to them
+    - If consumable lands on empty tile: creates pool (if liquid) or shatters
     - For other items: drops at target location
     """
     # Verify item is in thrower's inventory
@@ -54,9 +57,23 @@ def throw_item(
     # Remove from inventory
     world.remove_component(item_id, InInventory)
 
-    # Determine behavior based on item type
-    if consumable and consumable.creates_pool:
-        # Liquid consumable (potion/vial) - creates a ground pool
+    # Check if there's an entity at the target tile
+    target_entity = _get_entity_at(world, target_x, target_y)
+
+    # Determine behavior based on item type and target
+    if consumable and target_entity is not None:
+        # Consumable hits an entity - apply effect directly
+        target_drawable = world.get_component(target_entity, Drawable)
+        target_name = target_drawable.name if target_drawable else "something"
+
+        effect = create_effect_from_consumable(consumable, drawable.name)
+        result_msg = apply_effect_to_entity(world, target_entity, effect)
+
+        _destroy_item(world, item_id)
+        return True, f"Threw {drawable.name} at {target_name}: {result_msg}"
+
+    elif consumable and consumable.creates_pool:
+        # Liquid consumable lands on empty tile - creates a ground pool
         effect_type = _get_effect_type(consumable.effect_type)
         if effect_type:
             # Use the item's glyph color for the pool
@@ -72,15 +89,31 @@ def throw_item(
             )
         _destroy_item(world, item_id)
         return True, f"Threw {drawable.name} - it shatters on impact!"
+
     elif consumable and _is_breakable(item):
         # Non-liquid breakable consumable - just shatters
         _destroy_item(world, item_id)
         return True, f"Threw {drawable.name} - it shatters on impact!"
+
     else:
         # Other items just land at the target location
         world.add_component(item_id, Position(x=target_x, y=target_y))
         world.add_component(item_id, OnGround())
         return True, f"Threw {drawable.name}."
+
+
+def _get_entity_at(world: "World", x: int, y: int) -> int | None:
+    """
+    Find an actor entity at the specified tile.
+
+    Returns the entity ID or None if no actor is present.
+    Only returns entities with IsActor and Health (targetable entities).
+    """
+    for entity in world.get_entities_with(IsActor, Position, Health):
+        pos = world.component_for(entity, Position)
+        if pos.x == x and pos.y == y:
+            return entity
+    return None
 
 
 def _get_effect_type(effect_type_str: str) -> EffectType | None:
