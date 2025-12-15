@@ -36,4 +36,4 @@ Upcoming features:
 - AI systems (possibly djikstra maps? behavior trees?)
 
 ### AI NOTICE
-This is 100% brain coded, AI code generation is not used on this project. AI assitance is used for bug fixing in some areas.
+This is 95% brain coded, AI code generation is not used on the majority of this project. AI assitance is used for bug fixing in some areas, like test item creation and other tedious areas.
