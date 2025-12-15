@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 
 from ecs.components import Drawable, IsActor, Position
 from ecs.resources import MapResource
+from effects.components import GroundPool
 from items.components import Item, OnGround
 from map.map import TILE_PROPERTIES
 from ui.popup import Popup
@@ -38,6 +39,13 @@ def create_look_info_panel(world: "World", cursor_x: int, cursor_y: int) -> Popu
     entity_names: list[str] = []
 
     if is_visible or is_explored:
+        # Get pools at position
+        for entity_id in world.get_entities_with(GroundPool, Position):
+            pos = world.component_for(entity_id, Position)
+            if pos.x == cursor_x and pos.y == cursor_y:
+                pool = world.component_for(entity_id, GroundPool)
+                entity_names.append(f"pool of {pool.name}")
+
         # Get items on ground
         for entity_id in world.get_entities_with(OnGround, Position, Item, Drawable):
             pos = world.component_for(entity_id, Position)

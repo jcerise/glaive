@@ -1,11 +1,10 @@
-"""Actions for throwing items."""
-
 from typing import TYPE_CHECKING
 
 from ecs.components import Drawable, Health, IsActor, Position, Stats
 from effects.apply import apply_effect_to_entity
 from effects.effect_types import EffectType
 from effects.pools import create_pool
+from effects.targeting import get_chebyshev_distance
 from items.components import Consumable, InInventory, Item, OnGround
 from items.consumable_actions import create_effect_from_consumable
 
@@ -41,7 +40,8 @@ def throw_item(
 
     Behavior:
     - Removes item from thrower's inventory
-    - If consumable hits an entity: applies effect directly to them
+    - If AoE consumable: applies effect to all entities in radius, optionally creates pools
+    - If single-target consumable hits an entity: applies effect directly to them
     - If consumable lands on empty tile: creates pool (if liquid) or shatters
     - For other items: drops at target location
     """
@@ -57,11 +57,89 @@ def throw_item(
     # Remove from inventory
     world.remove_component(item_id, InInventory)
 
+    # Handle AoE consumables (radius > 0)
+    if consumable and consumable.radius > 0:
+        return _handle_aoe_consumable(
+            world, thrower, item_id, drawable, consumable, target_x, target_y
+        )
+
+    # Handle single-target consumables (radius = 0)
+    if consumable:
+        return _handle_single_target_consumable(
+            world, thrower, item_id, drawable, item, consumable, target_x, target_y
+        )
+
+    # Non-consumable items just land at the target location
+    world.add_component(item_id, Position(x=target_x, y=target_y))
+    world.add_component(item_id, OnGround())
+    return True, f"Threw {drawable.name}."
+
+
+def _handle_aoe_consumable(
+    world: "World",
+    thrower: int,
+    item_id: int,
+    drawable: Drawable,
+    consumable: Consumable,
+    target_x: int,
+    target_y: int,
+) -> tuple[bool, str]:
+    """Handle throwing an AoE consumable (radius > 0)."""
+    effect = create_effect_from_consumable(consumable, drawable.name)
+    effect_type = _get_effect_type(consumable.effect_type)
+    item_color = drawable.glyph.fg_color
+    radius = consumable.radius
+    pool_name = consumable.pool_name
+
+    # Find all entities in radius and apply effect
+    entities_hit = _get_entities_in_radius(world, target_x, target_y, radius)
+    hit_count = 0
+
+    for entity in entities_hit:
+        apply_effect_to_entity(world, entity, effect)
+        hit_count += 1
+
+    # Create pools at all tiles in radius if creates_pool is True
+    if consumable.creates_pool and effect_type:
+        tiles = _get_tiles_in_radius(target_x, target_y, radius)
+        for tx, ty in tiles:
+            create_pool(
+                world,
+                tx,
+                ty,
+                effect_type,
+                consumable.effect_power,
+                source_entity=thrower,
+                color=item_color,
+                name=pool_name,
+            )
+
+    _destroy_item(world, item_id)
+
+    # Build result message
+    if hit_count > 0:
+        return True, f"{drawable.name} explodes! Hit {hit_count} target(s)."
+    elif consumable.creates_pool:
+        return True, f"{drawable.name} explodes, creating pools!"
+    else:
+        return True, f"{drawable.name} explodes!"
+
+
+def _handle_single_target_consumable(
+    world: "World",
+    thrower: int,
+    item_id: int,
+    drawable: Drawable,
+    item: Item | None,
+    consumable: Consumable,
+    target_x: int,
+    target_y: int,
+) -> tuple[bool, str]:
+    """Handle throwing a single-target consumable (radius = 0)."""
     # Check if there's an entity at the target tile
     target_entity = _get_entity_at(world, target_x, target_y)
 
-    # Determine behavior based on item type and target
-    if consumable and target_entity is not None:
+    if target_entity is not None:
         # Consumable hits an entity - apply effect directly
         target_drawable = world.get_component(target_entity, Drawable)
         target_name = target_drawable.name if target_drawable else "something"
@@ -72,12 +150,12 @@ def throw_item(
         _destroy_item(world, item_id)
         return True, f"Threw {drawable.name} at {target_name}: {result_msg}"
 
-    elif consumable and consumable.creates_pool:
+    elif consumable.creates_pool:
         # Liquid consumable lands on empty tile - creates a ground pool
         effect_type = _get_effect_type(consumable.effect_type)
         if effect_type:
-            # Use the item's glyph color for the pool
             item_color = drawable.glyph.fg_color
+            pool_name = consumable.pool_name
             create_pool(
                 world,
                 target_x,
@@ -86,19 +164,19 @@ def throw_item(
                 consumable.effect_power,
                 source_entity=thrower,
                 color=item_color,
+                name=pool_name,
             )
         _destroy_item(world, item_id)
         return True, f"Threw {drawable.name} - it shatters on impact!"
 
-    elif consumable and _is_breakable(item):
+    elif _is_breakable(item):
         # Non-liquid breakable consumable - just shatters
         _destroy_item(world, item_id)
         return True, f"Threw {drawable.name} - it shatters on impact!"
 
     else:
-        # Other items just land at the target location
-        world.add_component(item_id, Position(x=target_x, y=target_y))
-        world.add_component(item_id, OnGround())
+        # Shouldn't happen for consumables, but fallback
+        _destroy_item(world, item_id)
         return True, f"Threw {drawable.name}."
 
 
@@ -114,6 +192,39 @@ def _get_entity_at(world: "World", x: int, y: int) -> int | None:
         if pos.x == x and pos.y == y:
             return entity
     return None
+
+
+def _get_entities_in_radius(
+    world: "World", center_x: int, center_y: int, radius: int
+) -> list[int]:
+    """
+    Find all actor entities within radius of the center tile.
+
+    Uses Chebyshev distance (king's move). Includes center tile.
+    """
+    entities = []
+    for entity in world.get_entities_with(IsActor, Position, Health):
+        pos = world.component_for(entity, Position)
+        distance = get_chebyshev_distance(center_x, center_y, pos.x, pos.y)
+        if distance <= radius:
+            entities.append(entity)
+    return entities
+
+
+def _get_tiles_in_radius(
+    center_x: int, center_y: int, radius: int
+) -> list[tuple[int, int]]:
+    """
+    Get all tile coordinates within radius of the center.
+
+    Uses Chebyshev distance (king's move). Includes center tile.
+    """
+    tiles = []
+    for dx in range(-radius, radius + 1):
+        for dy in range(-radius, radius + 1):
+            if get_chebyshev_distance(0, 0, dx, dy) <= radius:
+                tiles.append((center_x + dx, center_y + dy))
+    return tiles
 
 
 def _get_effect_type(effect_type_str: str) -> EffectType | None:

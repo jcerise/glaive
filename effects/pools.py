@@ -1,5 +1,3 @@
-"""Helper functions for creating and managing ground pools."""
-
 from typing import TYPE_CHECKING
 
 from ecs.components import Drawable, Position
@@ -73,6 +71,7 @@ def create_pool(
     source_entity: int | None = None,
     duration: int = POOL_DURATION,
     color: str | None = None,
+    name: str | None = None,
 ) -> int:
     """
     Create a ground pool at the specified location.
@@ -87,6 +86,7 @@ def create_pool(
         source_entity: Who created this pool (for attribution)
         duration: How many turns the pool lasts
         color: Pool color (if None, uses default color for effect type)
+        name: Pool name for display (if None, uses default name for effect type)
 
     Returns:
         The entity ID of the created pool
@@ -94,10 +94,12 @@ def create_pool(
     # Remove any existing pool at this location (one pool per tile)
     remove_pool_at(world, x, y)
 
-    # Get visual properties - use provided color or fall back to effect type default
+    # Get visual properties - use provided values or fall back to effect type defaults
     if color is None:
         color = POOL_COLORS.get(effect_type, "white")
-    pool_name = POOL_NAMES.get(effect_type, "strange liquid")
+    pool_name = (
+        name if name is not None else POOL_NAMES.get(effect_type, "strange liquid")
+    )
 
     # Create pool entity
     entity = world.create_entity()

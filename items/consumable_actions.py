@@ -62,7 +62,8 @@ def create_effect_from_consumable(consumable: Consumable, item_name: str) -> Eff
         name=item_name,
         effect_type=effect_type,
         power=consumable.effect_power,
-        duration=0,  # Instant for now - will enhance later
+        duration=consumable.effect_duration,
+        stat_modifiers=dict(consumable.stat_modifiers),  # Copy the dict
     )
 
 

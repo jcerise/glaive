@@ -182,11 +182,14 @@ class InventoryHandler(MenuHandler):
 
         ui_state: UIResource = self.world.resource_for(UIResource)
         drawable: Drawable = self.world.component_for(item_id, Drawable)
+        consumable: Consumable | None = self.world.get_component(item_id, Consumable)
 
         players: set[int] = self.world.get_entities_with(IsPlayer)
         player: int = next(iter(players))
 
         max_range = get_throw_range(self.world, player)
+        # Get AoE radius from consumable (0 for single target)
+        radius = consumable.radius if consumable else 0
 
         def on_confirm(target_x: int, target_y: int) -> ActionResult:
             success, message = throw_item(self.world, player, item_id, target_x, target_y)
@@ -204,6 +207,7 @@ class InventoryHandler(MenuHandler):
             self.world,
             ui_state.popup_stack,
             max_range=max_range,
+            radius=radius,
             show_path=True,
             on_confirm=on_confirm,
             prompt=f"Throw {drawable.name} where?",

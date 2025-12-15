@@ -1,5 +1,3 @@
-"""Targeting utilities for distance calculations, line-of-sight, and area effects."""
-
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:

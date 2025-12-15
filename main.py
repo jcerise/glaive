@@ -38,7 +38,7 @@ from input.handlers import MainGameHandler
 from input.input import InputHandler, InputManager
 from items.factory import (
     create_armor,
-    create_consumable,
+    create_consumable_from_template,
     create_treasure,
     create_weapon,
 )
@@ -57,13 +57,19 @@ from ui.target_panel import TargetMode
 def create_test_items(world: World):
     """Spawn test items with various rarities near player start"""
 
-    # Potions create ground pools when thrown
-    create_consumable(
-        world, "Health Potion", "!", "red", "heal", 20, 25, 3, 1, creates_pool=True
-    )
-    create_consumable(
-        world, "Mana Potion", "!", "blue", "restore_mana", 15, 25, 3, 2, creates_pool=True
-    )
+    # Potions - using templates
+    create_consumable_from_template(world, "health_potion", 3, 1)
+    create_consumable_from_template(world, "mana_potion", 3, 2)
+
+    # Stat buff potions - duration-based effects
+    create_consumable_from_template(world, "potion_of_strength", 3, 3)
+    create_consumable_from_template(world, "potion_of_regeneration", 3, 4)
+    create_consumable_from_template(world, "potion_of_poison", 3, 5)
+
+    # Scrolls - AoE effects
+    create_consumable_from_template(world, "scroll_of_fireball", 4, 1)
+    create_consumable_from_template(world, "scroll_of_mass_healing", 4, 2)
+    create_consumable_from_template(world, "scroll_of_flood", 4, 3)
 
     # Common sword - no affixes (white)
     create_weapon(
