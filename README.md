@@ -20,6 +20,10 @@ Currently implemented features:
 - Items, inventory
   - Equipment
   - Item rarities with affixes and prefixes
+  - Consumables, with a robust effect system
+  - Throwing items
+    - Potions shatter and create pools with effects
+    - Scrolls cast a targeted spell with potential AoE effects
 - Look/Examine system with complete entity descriptions
 
 Upcoming features:
